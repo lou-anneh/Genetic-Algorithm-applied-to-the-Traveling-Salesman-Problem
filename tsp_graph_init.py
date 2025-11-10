@@ -33,5 +33,4 @@
 # - les N meilleures routes trouvées en gris clair (population pour l'algorithme génétique) par exemple 5.
 # - une matrice de coûts de déplacements entre les Lieux (phéromones pour l'algorithme des colonies de fourmis)
 # L'appui sur la touche ESC servira à quitter complètement le programme et fermer l'interface graphique.
-# hello
 
