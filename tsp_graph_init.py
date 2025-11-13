@@ -419,9 +419,13 @@ class Affichage:
         self.root = tk.Tk()
         self.root.title(f"Problème du Voyageur de Commerce - {nom_groupe}")
         
+        # Frame principal pour organisation
+        frame_principal = tk.Frame(self.root, bg='white')
+        frame_principal.pack(fill=tk.BOTH, expand=True)
+        
         # Canvas pour dessiner le graphe
-        self.canvas = Canvas(self.root, width=LARGEUR, height=HAUTEUR, bg='white')
-        self.canvas.pack()
+        self.canvas = Canvas(frame_principal, width=LARGEUR, bg='white', highlightthickness=0)
+        self.canvas.pack(padx=0, pady=0)
         
         # Zone de texte pour afficher les informations
         frame_texte = tk.Frame(self.root)
@@ -430,13 +434,17 @@ class Affichage:
         scrollbar = Scrollbar(frame_texte)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        self.zone_texte = Text(frame_texte, height=8, yscrollcommand=scrollbar.set)
-        self.zone_texte.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.zone_texte = Text(frame_texte, height=8, yscrollcommand=scrollbar.set, 
+                               font=('Arial', 9), wrap=tk.WORD, bg='white')
+        self.zone_texte.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)        
         scrollbar.config(command=self.zone_texte.yview)
+        
         
         # Liaison des touches clavier
         self.root.bind('<Escape>', self.quitter)
         self.root.bind('<space>', self.toggle_affichage_population)  # Touche espace pour afficher population
+        self.root.protocol("WM_DELETE_WINDOW", self.quitter)
+
         
         # Affichage initial
         self.afficher_graph()
@@ -606,11 +614,10 @@ if __name__ == "__main__":
     # Option 1: Générer des lieux aléatoires
     graph.generer_lieux_aleatoires(NB_LIEUX)
     
-    # Option 2: Charger depuis un fichier CSV (décommenter pour utiliser)
-    # graph.charger_graph("lieux.csv")
-    
-    # Calcul de la matrice des distances
-    graph.calcul_matrice_cout_od()
+    # Option 2: Charger depuis un fichier CSV 
+    #graph = Graph(path="graph_5.csv")
+    # ou avec un chemin complet:
+    # graph = Graph(path="data/graph_20.csv")
     
     # Génération d'une route gloutonne (plus proche voisin)
     route_gloutonne = Route(graph)
@@ -624,8 +631,10 @@ if __name__ == "__main__":
         route.generer_route_aleatoire()
         population.append(route)
     
+    population.sort(key=lambda r: r.distance)
+
     # Création et lancement de l'interface graphique
-    affichage = Affichage(graph, nom_groupe="Votre Groupe Ici")
+    affichage = Affichage(graph, nom_groupe="Groupe 5 TSP")
     affichage.actualiser_affichage(
         meilleure_route=route_gloutonne,
         population_routes=population,
