@@ -18,7 +18,7 @@ from tkinter import Canvas, Text, Scrollbar
 LARGEUR = 800  # Largeur de la zone d'affichage
 HAUTEUR = 600  # Hauteur de la zone d'affichage
 
-NB_LIEUX = 5  # Nombre de lieux à générer/charger depuis un fichier csv
+NB_LIEUX = 30  # Nombre de lieux à générer/charger depuis un fichier csv
 
 # ============================================================================
 # CLASSE LIEU
@@ -169,31 +169,42 @@ class Graph:
             with open(nom_fichier, 'r', encoding='utf-8') as fichier:
                 lecteur = csv.reader(fichier)
                 
+                for num_ligne, ligne in enumerate(lecteur):
+                    if len(ligne) <2 :
+                        continue
+                    
+                    print(f"Ligne {num_ligne}: {ligne}")
+                    
                 # Lecture de la première ligne pour détecter si c'est un en-tête
-                premiere_ligne = next(lecteur)
+                # premiere_ligne = next(lecteur)
+                # print(f"Première ligne du fichier: {premiere_ligne}")
                 
-                # On vérifie si la première ligne est une donnée (nom, x, y)
-                try:
+                # On vérifie si la première ligne est une donnée (x, y)
+                    try:
                     # On vérifie les colonnes 1 et 2 pour les nombres
-                    x = float(premiere_ligne[1])
-                    y = float(premiere_ligne[2])
-                    nom = premiere_ligne[0]
-                    lieu = Lieu(x, y, nom)
-                    self.liste_lieux.append(lieu)
+                        x = float(ligne[0])
+                        y = float(ligne[1])
+                    
+                        nom=str(len(self.liste_lieux))
+                        lieu = Lieu(x, y, nom)
+                        self.liste_lieux.append(lieu)
                 
-                except (ValueError, IndexError):
-                    # C'est un en-tête (ex: "nom", "x", "y") ou format invalide, on l'ignore
-                    pass
+                    except (ValueError, IndexError): 
+                        pass
+                    # C'est un en-tête (ex: "nom", "x", "y") ou format invalide, on l'ignore 
+                    
                 
                 # Lecture du reste des lignes
                 for ligne in lecteur:
                     if len(ligne) >= 3: # S'assurer qu'on a au moins 3 colonnes
                         try:
-                            nom = ligne[0]
-                            x = float(ligne[1])
-                            y = float(ligne[2])
+                            x = float(ligne[0])
+                            y = float(ligne[1])
+                            
+                            nom=str(len(self.liste_lieux))
                             lieu = Lieu(x, y, nom)
                             self.liste_lieux.append(lieu)
+                            
                         except ValueError:
                             # Ignorer les lignes mal formatées (ex: du texte dans x ou y)
                             print(f"Ligne ignorée (format non numérique): {ligne}")
@@ -619,10 +630,10 @@ if __name__ == "__main__":
     graph = Graph()
     
     # Option 1: Générer des lieux aléatoires
-    graph.generer_lieux_aleatoires(NB_LIEUX)
+    # graph.generer_lieux_aleatoires(NB_LIEUX)
     
     # Option 2: Charger depuis un fichier CSV 
-    #graph = Graph(path="graph_5.csv")
+    graph = Graph(path="graph_5.csv")
     # ou avec un chemin complet:
     # graph = Graph(path="data/graph_20.csv")
     
