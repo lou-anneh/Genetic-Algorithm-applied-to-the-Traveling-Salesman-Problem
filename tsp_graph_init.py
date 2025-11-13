@@ -402,7 +402,7 @@ class Affichage:
     Permet de visualiser les lieux, la meilleure route, et des informations supplémentaires.
     """
     
-    def __init__(self, graph, nom_groupe="Groupe TSP"):
+    def __init__(self, graph, nom_groupe="Groupe 5 TSP"):
         """
         Initialise l'interface graphique Tkinter.
         
@@ -442,7 +442,7 @@ class Affichage:
         self.afficher_graph()
         self.ajouter_texte("Interface graphique initialisée.")
         self.ajouter_texte("Appuyez sur ESPACE pour afficher/masquer la population.")
-        self.ajouter_texte("Appuyez sur ESC pour quitter.")
+        self.ajouter_texte("Appuyez sur ECHAP POUR QUITTER L'APPLICATION.")
     
     def afficher_graph(self):
         """
