@@ -1,43 +1,7 @@
-#create classes 
-
-#classe Lieu
-#Cette classe sert à mémoriser les coordonnées x et y du lieu à visiter et son nom
-#La classe disposera d'une fonction de calcul de distance entre 2 lieux.
-#La distance utilisée est la distance euclidienne.
-
-
-#classe Graphe
-#Cette classe est utilisée pour mémoriser une liste de lieux (variable liste_lieux).
-#La liste des lieux devra être récupérée du TP précédent ou générée de manière aléatoire avec des coordonnées qui devront être adaptées pour tenir dans un espace défini grâce à deux constantes LARGEUR=800 et HAUTEUR=600. 
-#Le nombre de lieux sera défini dans une constante nommée NB_LIEUX.
-#Une fonction nommée calcul_matrice_cout_od sera définie pour calculer ou importer une matrice de distances entre chaque lieu du graphe et stocker ce résultat dans une variable de classe matrice_od.
-#Le graph disposera également d'une fonction nommée plus_proche_voisin permettant de renvoyer le plus proche voisin d'un lieu en utilisant la matrice de distances.
-#Cette classe disposera d'une méthode de lecture dans un fichier CSV de la liste des coordonnées des lieux (charger_graph).
-#Des fichiers CSV contenant des exemples de liste de lieux sont fournis sur moodle. Les fichiers CSV utilisés pour l'évaluation auront exactement la même structure.
-
-
-# #classe Route
-# Cette classe sert à générer une route traversant tous les lieux d'un graph. La classe route disposera d'une variable ordre représentant la succession des lieux visités. Une contrainte particulière impose que le premier et dernier élément visité soit le lieu de départ du graphe correspondant au lieu numéroté 0 dans la variable liste_lieux du graph.
-# Exemple de contenu de la variable ordre d'une route : [0,3,8,1,2,4,6,5,9,7,0] 
-# Une fonction de calcul de la distance totale de la route nommée calcul_distance_route devra être créée dans la classe Graph.
-# La distance utilisée est la distance euclidienne.
-
-# •	classe Affichage:
-# La classe Affichage servira à afficher les Lieux du graphe sous forme de cercles avec le numéro du Lieu inscrit au milieu du cercle.
-# Vous indiquerez le nom de votre groupe dans le titre de la fenêtre Tkinter
-# Les éléments graphiques seront dessinés dans un espace de type Canvas d'une taille définie par les constantes LARGEUR et HAUTEUR.
-# Une zone de texte positionnée en dessous de la zone graphique servira à afficher l'évolution des étapes des différents algorithmes (nombre d'itérations, meilleure distance trouvée, etc...)
-# Cette classe affichera une ligne bleue pointillée représentant la meilleure route trouvée.
-# L'ordre de visite des lieux de la route sera indiqué au-dessus de chaque Lieu visité.
-# L'appui sur une touche de votre choix devra permettre d'afficher en fonction de votre algorithme:
-# - les N meilleures routes trouvées en gris clair (population pour l'algorithme génétique) par exemple 5.
-# - une matrice de coûts de déplacements entre les Lieux (phéromones pour l'algorithme des colonies de fourmis)
-# L'appui sur la touche ESC servira à quitter complètement le programme et fermer l'interface graphique.
-
-
 """
 Fichier de génération et gestion d'un graphe de lieux pour le problème du voyageur de commerce (TSP)
 Groupe 5
+#test
 """
 
 import numpy as np
@@ -52,31 +16,32 @@ from tkinter import Canvas, Text, Scrollbar
 
 LARGEUR = 800  # Largeur de la zone d'affichage
 HAUTEUR = 600  # Hauteur de la zone d'affichage
-NB_LIEUX = 10  # Nombre de lieux à générer/charger
 
+NB_LIEUX = 5  # Nombre de lieux à générer/charger depuis un fichier csv
 
 # ============================================================================
 # CLASSE LIEU
+#Cette classe sert à mémoriser les coordonnées x et y du lieu à visiter et son nom
+#La classe disposera d'une fonction de calcul de distance entre 2 lieux.
+#La distance utilisée est la distance euclidienne.
 # ============================================================================
 
-class Lieu:
+class Lieu:   
     """
     Classe représentant un lieu avec ses coordonnées (x, y) et son nom.
     Permet de calculer la distance euclidienne entre deux lieux.
     """
+    def __init__(self, x, y):
     
-    def __init__(self, x, y, nom):
         """
         Initialise un lieu avec ses coordonnées et son nom.
         
         Args:
             x (float): Coordonnée x du lieu
             y (float): Coordonnée y du lieu
-            nom (str): Nom ou identifiant du lieu
         """
         self.x = x
         self.y = y
-        self.nom = nom
     
     def distance(self, autre_lieu):
         """
@@ -96,14 +61,27 @@ class Lieu:
         # Retourne la distance euclidienne
         return np.sqrt(dx**2 + dy**2)
     
-    def __str__(self):
-        """Représentation textuelle du lieu"""
-        return f"Lieu {self.nom}: ({self.x:.2f}, {self.y:.2f})"
+    def __repr__(self):
+        return "("+ str(self.x)+", "+str(self.y)+")"
 
 
 # ============================================================================
 # CLASSE GRAPH
+#Cette classe est utilisée pour mémoriser une liste de lieux (variable liste_lieux).
+#La liste des lieux devra être récupérée du TP précédent ou générée de manière aléatoire avec des coordonnées qui devront être adaptées pour tenir dans un espace défini grâce à deux constantes LARGEUR=800 et HAUTEUR=600. 
+#Le nombre de lieux sera défini dans une constante nommée NB_LIEUX.
+#Une fonction nommée calcul_matrice_cout_od sera définie pour calculer ou importer une matrice de distances entre chaque lieu du graphe et stocker ce résultat dans une variable de classe matrice_od.
+#Le graph disposera également d'une fonction nommée plus_proche_voisin permettant de renvoyer le plus proche voisin d'un lieu en utilisant la matrice de distances.
+#Cette classe disposera d'une méthode de lecture dans un fichier CSV de la liste des coordonnées des lieux (charger_graph).
+#Des fichiers CSV contenant des exemples de liste de lieux sont fournis sur moodle. Les fichiers CSV utilisés pour l'évaluation auront exactement la même structure.
+
 # ============================================================================
+
+import numpy as np
+import random
+import csv
+# Assure-toi que Lieu est défini au-dessus de ce code
+# Assure-toi que les constantes (LARGEUR, HAUTEUR, NB_LIEUX) sont définies
 
 class Graph:
     """
@@ -111,45 +89,80 @@ class Graph:
     Gère la liste des lieux, la matrice des distances et les opérations associées.
     """
     
-    def __init__(self):
+    def __init__(self, path=None, nb_lieux_defaut=NB_LIEUX):
         """
-        Initialise un graphe vide.
+        Initialise un graphe.
+        Si path est None, génère des lieux aléatoires (Cas 1).
+        Si path est fourni, charge les lieux depuis le fichier (Cas 2).
+        
+        Args:
+            path (str, optional): Chemin vers le fichier CSV.
+            nb_lieux_defaut (int, optional): Nombre de lieux à générer si path est None.
         """
-        self.liste_lieux = []  # Liste des objets Lieu
-        self.matrice_od = None  # Matrice origine-destination (distances)
+        self.liste_lieux = []
+        self.matrice_od = None
+        
+        if path is None:
+            # CAS 1: Génération aléatoire si aucun fichier n'est fourni
+            print("Mode: Génération aléatoire de lieux.")
+            self.generer_lieux_aleatoires(nb_lieux_defaut)
+        else:
+            # CAS 2: Chargement depuis un fichier
+            print(f"Mode: Chargement depuis le fichier {path}.")
+            self.charger_graph(path)
+            
+        # Après la génération OU le chargement, on calcule la matrice
+        if self.liste_lieux:
+            self.calcul_matrice_cout_od()
+        else:
+            print("Erreur: Aucun lieu n'a été chargé ou généré.")
+
     
     def generer_lieux_aleatoires(self, nb_lieux=NB_LIEUX):
         """
-        Génère aléatoirement des lieux dans l'espace défini par LARGEUR et HAUTEUR.
-        Le premier lieu (lieu 0) est toujours le point de départ.
+        CAS 1: Génère aléatoirement des lieux dans l'espace défini par LARGEUR et HAUTEUR.
         
         Args:
             nb_lieux (int): Nombre de lieux à générer
         """
         self.liste_lieux = []
         
-        # Génération de nb_lieux lieux avec coordonnées aléatoires
         for i in range(nb_lieux):
-            # Coordonnées aléatoires dans l'espace défini
-            # On laisse une marge de 50 pixels sur les bords pour l'affichage
             x = random.uniform(50, LARGEUR - 50)
             y = random.uniform(50, HAUTEUR - 50)
-            
-            # Création du lieu avec son numéro comme nom
             lieu = Lieu(x, y, str(i))
             self.liste_lieux.append(lieu)
         
         print(f"{nb_lieux} lieux générés aléatoirement.")
     
+    
     def charger_graph(self, nom_fichier):
         """
-        Charge la liste des lieux depuis un fichier CSV.
+        CAS 2 : Charge la liste des lieux depuis un fichier CSV.
         Format attendu du CSV: nom,x,y (avec ou sans en-tête)
+        Met également à jour la variable globale NB_LIEUX.
         
         Args:
-            nom_fichier (str): Chemin vers le fichier CSV
+            nom_fichier (str): Chemin vers le fichier CSV (ex: "graph_5.csv")
         """
         self.liste_lieux = []
+        global NB_LIEUX # Indique qu'on veut modifier la variable GLOBALE
+
+        try:
+            # Extraction de NB_LIEUX depuis le nom du fichier
+            # Ex: "data/graph_5.csv" -> "graph_5.csv"
+            nom_base = nom_fichier.split('/')[-1]
+            # "graph_5.csv" -> ["graph", "5.csv"] -> "5.csv"
+            partie_num = nom_base.split('_')[1]
+            # "5.csv" -> ["5", "csv"] -> "5"
+            nb_str = partie_num.split('.')[0]
+            
+            NB_LIEUX = int(nb_str)
+            print(f"Variable globale NB_LIEUX mise à jour à {NB_LIEUX} (via le nom du fichier).")
+
+        except (IndexError, ValueError, TypeError):
+            print(f"Avertissement: Impossible d'extraire NB_LIEUX depuis le nom '{nom_fichier}'.")
+            print("Le format attendu est 'prefix_NOMBRE.csv'.")
         
         try:
             with open(nom_fichier, 'r', encoding='utf-8') as fichier:
@@ -158,61 +171,72 @@ class Graph:
                 # Lecture de la première ligne pour détecter si c'est un en-tête
                 premiere_ligne = next(lecteur)
                 
-                # Si la première ligne contient des nombres, c'est une donnée
+                # On vérifie si la première ligne est une donnée (nom, x, y)
                 try:
+                    # On vérifie les colonnes 1 et 2 pour les nombres
                     x = float(premiere_ligne[1])
                     y = float(premiere_ligne[2])
                     nom = premiere_ligne[0]
                     lieu = Lieu(x, y, nom)
                     self.liste_lieux.append(lieu)
+                
                 except (ValueError, IndexError):
-                    # C'est un en-tête, on l'ignore
+                    # C'est un en-tête (ex: "nom", "x", "y") ou format invalide, on l'ignore
                     pass
                 
                 # Lecture du reste des lignes
                 for ligne in lecteur:
-                    if len(ligne) >= 3:
-                        nom = ligne[0]
-                        x = float(ligne[1])
-                        y = float(ligne[2])
-                        lieu = Lieu(x, y, nom)
-                        self.liste_lieux.append(lieu)
-            
+                    if len(ligne) >= 3: # S'assurer qu'on a au moins 3 colonnes
+                        try:
+                            nom = ligne[0]
+                            x = float(ligne[1])
+                            y = float(ligne[2])
+                            lieu = Lieu(x, y, nom)
+                            self.liste_lieux.append(lieu)
+                        except ValueError:
+                            # Ignorer les lignes mal formatées (ex: du texte dans x ou y)
+                            print(f"Ligne ignorée (format non numérique): {ligne}")
+                
             print(f"{len(self.liste_lieux)} lieux chargés depuis {nom_fichier}.")
             
+            # Vérification de cohérence
+            if len(self.liste_lieux) != NB_LIEUX:
+                 print(f"Avertissement: Le fichier contient {len(self.liste_lieux)} lieux, "
+                       f"mais le nom du fichier indiquait {NB_LIEUX}.")
+                 # On met à jour NB_LIEUX pour refléter la réalité du fichier
+                 NB_LIEUX = len(self.liste_lieux)
+                 print(f"NB_LIEUX ajusté à {NB_LIEUX}.")
+
         except FileNotFoundError:
             print(f"Erreur: Le fichier {nom_fichier} n'existe pas.")
+        except StopIteration:
+            # Gère le cas où le fichier est complètement vide
+            print(f"Erreur: Le fichier {nom_fichier} est vide.")
         except Exception as e:
             print(f"Erreur lors du chargement du fichier: {e}")
+
     
     def calcul_matrice_cout_od(self):
         """
         Calcule la matrice des distances (coûts) entre tous les lieux du graphe.
-        Optimisation: On ne calcule qu'une fois chaque distance car distance(A,B) = distance(B,A).
-        La matrice est symétrique avec des 0 sur la diagonale.
-        
-        Returns:
-            numpy.ndarray: Matrice carrée des distances
         """
         n = len(self.liste_lieux)
-        
-        # Initialisation de la matrice avec des zéros
+        if n == 0:
+            print("Impossible de calculer la matrice: liste_lieux est vide.")
+            return None
+            
         self.matrice_od = np.zeros((n, n))
         
-        # Remplissage de la matrice triangulaire supérieure
-        # Optimisation: on ne calcule qu'une fois chaque distance
         for i in range(n):
-            for j in range(i + 1, n):  # Commence à i+1 pour éviter la diagonale et les doublons
-                # Calcul de la distance entre lieu i et lieu j
+            for j in range(i + 1, n): 
                 dist = self.liste_lieux[i].distance(self.liste_lieux[j])
-                
-                # Stockage symétrique: distance(i,j) = distance(j,i)
                 self.matrice_od[i][j] = dist
                 self.matrice_od[j][i] = dist
         
         print("Matrice des distances calculée.")
         return self.matrice_od
     
+
     def plus_proche_voisin(self, indice_lieu, lieux_visites=None):
         """
         Trouve le plus proche voisin d'un lieu donné parmi les lieux non encore visités.
@@ -220,32 +244,34 @@ class Graph:
         
         Args:
             indice_lieu (int): Indice du lieu de référence
-            lieux_visites (set): Ensemble des indices des lieux déjà visités (optionnel)
+            lieux_visites (set): Ensemble des indices des lieux déjà visités
             
         Returns:
             int: Indice du plus proche voisin, ou None si tous les lieux sont visités
         """
+        if self.matrice_od is None:
+            print("Erreur: La matrice des distances n'est pas calculée.")
+            return None
+            
         if lieux_visites is None:
             lieux_visites = set()
         
-        # Distance minimale initialisée à l'infini
         distance_min = float('inf')
         indice_plus_proche = None
         
-        # Parcours de tous les lieux pour trouver le plus proche non visité
+        # Parcours de tous les lieux
         for i in range(len(self.liste_lieux)):
-            # On ignore le lieu lui-même et les lieux déjà visités
+            # On ignore le lieu lui-même ET les lieux déjà visités
             if i != indice_lieu and i not in lieux_visites:
-                # Récupération de la distance depuis la matrice précalculée
                 dist = self.matrice_od[indice_lieu][i]
                 
-                # Mise à jour si on trouve un lieu plus proche
                 if dist < distance_min:
                     distance_min = dist
                     indice_plus_proche = i
         
         return indice_plus_proche
     
+
     def calcul_distance_route(self, route):
         """
         Calcule la distance totale d'une route (succession de lieux).
@@ -257,20 +283,19 @@ class Graph:
         Returns:
             float: Distance totale de la route
         """
+        if self.matrice_od is None:
+            print("Erreur: La matrice des distances n'est pas calculée.")
+            return 0.0
+
         distance_totale = 0.0
         ordre = route.ordre
         
-        # Parcours de tous les segments de la route
         for i in range(len(ordre) - 1):
-            # Indices des lieux de départ et d'arrivée du segment
             lieu_depart = ordre[i]
             lieu_arrivee = ordre[i + 1]
-            
-            # Ajout de la distance du segment à la distance totale
             distance_totale += self.matrice_od[lieu_depart][lieu_arrivee]
         
         return distance_totale
-
 
 # ============================================================================
 # CLASSE ROUTE
@@ -609,3 +634,4 @@ if __name__ == "__main__":
     # Démarrage de l'interface
     affichage.demarrer()
 
+   
