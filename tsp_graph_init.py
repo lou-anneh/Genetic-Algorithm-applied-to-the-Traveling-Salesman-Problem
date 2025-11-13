@@ -2,6 +2,7 @@
 Fichier de génération et gestion d'un graphe de lieux pour le problème du voyageur de commerce (TSP)
 Groupe 5
 #test
+Groupe 5 Léa Léa Lou-Anne Lisa
 """
 
 import numpy as np
