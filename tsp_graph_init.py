@@ -32,7 +32,7 @@ class Lieu:
     Classe représentant un lieu avec ses coordonnées (x, y) et son nom.
     Permet de calculer la distance euclidienne entre deux lieux.
     """
-    def __init__(self, x, y):
+    def __init__(self, x, y, nom):
     
         """
         Initialise un lieu avec ses coordonnées et son nom.
@@ -43,6 +43,7 @@ class Lieu:
         """
         self.x = x
         self.y = y
+        self.nom = nom
     
     def distance(self, autre_lieu):
         """
@@ -63,8 +64,7 @@ class Lieu:
         return np.sqrt(dx**2 + dy**2)
     
     def __repr__(self):
-        return "("+ str(self.x)+", "+str(self.y)+")"
-
+        return f"Lieu {self.nom}: ({self.x:.2f}, {self.y:.2f})"
 
 # ============================================================================
 # CLASSE GRAPH
