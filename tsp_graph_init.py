@@ -18,7 +18,6 @@ from tkinter import Canvas, Text, Scrollbar
 
 LARGEUR = 800  # Largeur de la zone d'affichage
 HAUTEUR = 600  # Hauteur de la zone d'affichage
-
 NB_LIEUX = 30  # Nombre de lieux à générer/charger depuis un fichier csv
 
 # ============================================================================
