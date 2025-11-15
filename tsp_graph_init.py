@@ -11,6 +11,7 @@ import csv
 import tkinter as tk
 from tkinter import Canvas, Text, Scrollbar
 
+
 # ============================================================================
 # CONSTANTES GLOBALES
 # ============================================================================
@@ -247,67 +248,38 @@ class Graph:
         
         print("Matrice des distances calculée.")
         return self.matrice_od
-    
 
-    def plus_proche_voisin(self, indice_lieu, lieux_visites=None):
-        """
-        Trouve le plus proche voisin d'un lieu donné parmi les lieux non encore visités.
-        Utilise la matrice de distances précalculée.
-        
-        Args:
-            indice_lieu (int): Indice du lieu de référence
-            lieux_visites (set): Ensemble des indices des lieux déjà visités
+    def plus_proche_voisin(self, indice_lieu, lieux_non_visites):
+            """
+            Trouve le plus proche voisin d'un lieu donné parmi un ensemble de lieux non visités.
+            Utilise la matrice de distances précalculée.
+            Optimisation: ne parcourt que les lieux du set fourni au lieu de toute la liste.
             
-        Returns:
-            int: Indice du plus proche voisin, ou None si tous les lieux sont visités
-        """
-        if self.matrice_od is None:
-            print("Erreur: La matrice des distances n'est pas calculée.")
-            return None
+            Args:
+                indice_lieu (int): Indice du lieu de référence
+                lieux_non_visites (set): Ensemble des indices des lieux non encore visités
+                
+            Returns:
+                int: Indice du plus proche voisin, ou None si l'ensemble est vide
+            """
+            if not lieux_non_visites:
+                return None
             
-        if lieux_visites is None:
-            lieux_visites = set()
-        
-        distance_min = float('inf')
-        indice_plus_proche = None
-        
-        # Parcours de tous les lieux
-        for i in range(len(self.liste_lieux)):
-            # On ignore le lieu lui-même ET les lieux déjà visités
-            if i != indice_lieu and i not in lieux_visites:
+            # Distance minimale initialisée à l'infini
+            distance_min = float('inf')
+            indice_plus_proche = None
+            
+            # Parcours uniquement des lieux non visités (optimisation)
+            for i in lieux_non_visites:
+                # Récupération de la distance depuis la matrice précalculée
                 dist = self.matrice_od[indice_lieu][i]
                 
+                # Mise à jour si on trouve un lieu plus proche
                 if dist < distance_min:
                     distance_min = dist
                     indice_plus_proche = i
-        
-        return indice_plus_proche
-    
-
-    def calcul_distance_route(self, route):
-        """
-        Calcule la distance totale d'une route (succession de lieux).
-        Utilise la matrice de distances précalculée.
-        
-        Args:
-            route (Route): Objet Route contenant l'ordre de visite
             
-        Returns:
-            float: Distance totale de la route
-        """
-        if self.matrice_od is None:
-            print("Erreur: La matrice des distances n'est pas calculée.")
-            return 0.0
-
-        distance_totale = 0.0
-        ordre = route.ordre
-        
-        for i in range(len(ordre) - 1):
-            lieu_depart = ordre[i]
-            lieu_arrivee = ordre[i + 1]
-            distance_totale += self.matrice_od[lieu_depart][lieu_arrivee]
-        
-        return distance_totale
+            return indice_plus_proche
 
 # ============================================================================
 # CLASSE ROUTE
@@ -315,92 +287,38 @@ class Graph:
 
 class Route:
     """
-    Classe représentant une route (un parcours) visitant tous les lieux d'un graphe.
-    La route commence et se termine toujours au lieu 0 (dépôt).
+    Classe représentant une route traversant tous les lieux d'un graphe.
+    La route commence et se termine au lieu 0 (point de départ).
     """
     
     def __init__(self, graph):
         """
-        Initialise une route vide pour un graphe donné.
+        Initialise une route pour un graphe donné.
         
         Args:
             graph (Graph): Le graphe contenant les lieux à visiter
         """
         self.graph = graph
-        self.ordre = []  # Liste ordonnée des indices des lieux visités
-        self.distance = None  # Distance totale de la route (calculée à la demande)
+        self.ordre = []  # Ordre de visite des lieux [0, 3, 8, 1, 2, 4, 6, 5, 9, 7, 0]
     
-    def generer_route_aleatoire(self):
+    def calcul_distance_route(self):
         """
-        Génère une route aléatoire visitant tous les lieux exactement une fois.
-        La route commence et se termine au lieu 0.
-        """
-        nb_lieux = len(self.graph.liste_lieux)
-        
-        # Création d'une liste des lieux à visiter (sauf le lieu 0)
-        lieux_a_visiter = list(range(1, nb_lieux))
-        
-        # Mélange aléatoire de l'ordre de visite
-        random.shuffle(lieux_a_visiter)
-        
-        # Construction de la route: 0 -> lieux mélangés -> 0
-        self.ordre = [0] + lieux_a_visiter + [0]
-        
-        # Recalcul de la distance
-        self.distance = self.graph.calcul_distance_route(self)
-    
-    def generer_route_gloutonne(self):
-        """
-        Génère une route en utilisant l'heuristique du plus proche voisin.
-        À chaque étape, on visite le lieu non visité le plus proche.
-        """
-        # Initialisation: on part du lieu 0
-        self.ordre = [0]
-        lieux_visites = {0}
-        lieu_courant = 0
-        
-        # Tant qu'il reste des lieux à visiter
-        while len(lieux_visites) < len(self.graph.liste_lieux):
-            # Trouve le plus proche voisin non visité
-            prochain_lieu = self.graph.plus_proche_voisin(lieu_courant, lieux_visites)
-            
-            if prochain_lieu is not None:
-                # Ajout du lieu à la route
-                self.ordre.append(prochain_lieu)
-                lieux_visites.add(prochain_lieu)
-                lieu_courant = prochain_lieu
-        
-        # Retour au lieu de départ
-        self.ordre.append(0)
-        
-        # Calcul de la distance totale
-        self.distance = self.graph.calcul_distance_route(self)
-    
-    def calculer_distance(self):
-        """
-        Calcule et met à jour la distance totale de la route.
+        Calcule la distance totale de la route en utilisant l'ordre de visite.
+        Parcourt tous les segments de la route et somme les distances.
         
         Returns:
             float: Distance totale de la route
         """
-        self.distance = self.graph.calcul_distance_route(self)
-        return self.distance
-    
-    def copier(self):
-        """
-        Crée une copie profonde de la route.
+        distance_totale = 0.0
         
-        Returns:
-            Route: Nouvelle instance de Route avec le même ordre
-        """
-        nouvelle_route = Route(self.graph)
-        nouvelle_route.ordre = self.ordre.copy()
-        nouvelle_route.distance = self.distance
-        return nouvelle_route
+        # Parcours de la route et somme des distances entre lieux consécutifs
+        for i in range(len(self.ordre) - 1):
+            lieu_depart = self.ordre[i]
+            lieu_arrivee = self.ordre[i + 1]
+            distance_totale += self.graph.matrice_od[lieu_depart][lieu_arrivee]
+        
+        return distance_totale
     
-    def __str__(self):
-        """Représentation textuelle de la route"""
-        return f"Route: {self.ordre}, Distance: {self.distance:.2f}"
 
 
 # ============================================================================
@@ -409,257 +327,254 @@ class Route:
 
 class Affichage:
     """
-    Classe gérant l'affichage graphique du graphe et des routes avec Tkinter.
-    Permet de visualiser les lieux, la meilleure route, et des informations supplémentaires.
+    Classe pour l'affichage graphique du graphe et des routes avec Tkinter.
+    Affiche les lieux, la meilleure route, et des informations textuelles.
     """
     
-    def __init__(self, graph, nom_groupe="Groupe 5 TSP"):
+    def __init__(self, graph, titre="Groupe 5"):
         """
-        Initialise l'interface graphique Tkinter.
+        Initialise l'interface graphique.
         
         Args:
             graph (Graph): Le graphe à afficher
-            nom_groupe (str): Nom du groupe à afficher dans le titre
+            titre (str): Titre de la fenêtre
         """
         self.graph = graph
         self.meilleure_route = None
-        self.population_routes = []  # Liste des N meilleures routes (pour affichage)
-        self.afficher_population = False  # Flag pour afficher/masquer la population
+        self.routes_population = []  # Pour stocker les N meilleures routes
+        self.afficher_population = False  # Flag pour afficher/masquer les routes
         
         # Création de la fenêtre principale
         self.root = tk.Tk()
-        self.root.title(f"Problème du Voyageur de Commerce - {nom_groupe}")
+        self.root.title(titre)
         
-        # Frame principal pour organisation
-        frame_principal = tk.Frame(self.root, bg='white')
-        frame_principal.pack(fill=tk.BOTH, expand=True)
+        # Canvas pour le dessin
+        self.canvas = Canvas(self.root, width=LARGEUR, height=HAUTEUR, bg="white")
+        self.canvas.pack()
         
-        # Canvas pour dessiner le graphe
-        self.canvas = Canvas(frame_principal, width=LARGEUR, bg='white', highlightthickness=0)
-        self.canvas.pack(padx=0, pady=0)
+        # Frame pour la zone de texte avec scrollbar
+        text_frame = tk.Frame(self.root)
+        text_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Zone de texte pour afficher les informations
-        frame_texte = tk.Frame(self.root)
-        frame_texte.pack(fill=tk.BOTH, expand=True)
-        
-        scrollbar = Scrollbar(frame_texte)
+        # Scrollbar
+        scrollbar = Scrollbar(text_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        self.zone_texte = Text(frame_texte, height=8, yscrollcommand=scrollbar.set, 
-                               font=('Arial', 9), wrap=tk.WORD, bg='white')
-        self.zone_texte.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)        
-        scrollbar.config(command=self.zone_texte.yview)
+        # Zone de texte pour les informations
+        self.text_info = Text(text_frame, height=10, width=100, 
+                             yscrollcommand=scrollbar.set)
+        self.text_info.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.text_info.yview)
         
-        
-        # Liaison des touches clavier
+        # Gestion des événements clavier
         self.root.bind('<Escape>', self.quitter)
-        self.root.bind('<space>', self.toggle_affichage_population)  # Touche espace pour afficher population
-        self.root.protocol("WM_DELETE_WINDOW", self.quitter)
-
+        self.root.bind('<space>', self.toggle_population)  # Touche espace pour afficher/masquer
         
         # Affichage initial
-        self.afficher_graph()
-        self.ajouter_texte("Interface graphique initialisée.")
-        self.ajouter_texte("Appuyez sur ESPACE pour afficher/masquer la population.")
-        self.ajouter_texte("Appuyez sur ECHAP POUR QUITTER L'APPLICATION.")
+        self.afficher_lieux()
+        self.ajouter_texte("Interface initialisée.\n")
+        self.ajouter_texte("Appuyez sur ESPACE pour afficher/masquer les routes secondaires.\n")
+        self.ajouter_texte("Appuyez sur ESC pour quitter.\n")
     
-    def afficher_graph(self):
+    def afficher_lieux(self):
         """
-        Affiche tous les lieux du graphe sous forme de cercles numérotés.
+        Affiche tous les lieux du graphe sous forme de cercles avec leur numéro.
         """
-        rayon = 15  # Rayon des cercles représentant les lieux
+        rayon = 15
         
         for i, lieu in enumerate(self.graph.liste_lieux):
             x, y = lieu.x, lieu.y
             
-            # Couleur spéciale pour le lieu de départ (lieu 0)
-            couleur = 'red' if i == 0 else 'lightblue'
-            
             # Dessin du cercle
-            self.canvas.create_oval(
-                x - rayon, y - rayon, x + rayon, y + rayon,
-                fill=couleur, outline='black', width=2
-            )
+            self.canvas.create_oval(x - rayon, y - rayon, 
+                                   x + rayon, y + rayon,
+                                   fill="lightblue", outline="black", width=2)
             
-            # Affichage du numéro du lieu au centre du cercle
-            self.canvas.create_text(
-                x, y, text=str(i), font=('Arial', 10, 'bold')
-            )
+            # Numéro du lieu au centre
+            self.canvas.create_text(x, y, text=str(i), 
+                                   font=("Arial", 10, "bold"))
     
-    def afficher_route(self, route, couleur='blue', epaisseur=2, style=None, afficher_ordre=True):
+    def afficher_route(self, route, couleur="blue", style="", largeur=2, afficher_ordre=True):
         """
-        Affiche une route sur le canvas avec une ligne reliant les lieux dans l'ordre.
+        Affiche une route sur le canvas.
         
         Args:
             route (Route): La route à afficher
             couleur (str): Couleur de la ligne
-            epaisseur (int): Épaisseur de la ligne
-            style (tuple): Style de ligne (ex: (5, 5) pour pointillés)
+            style (str): Style de ligne ("" pour continu, "dash" pour pointillé)
+            largeur (int): Épaisseur de la ligne
             afficher_ordre (bool): Si True, affiche l'ordre de visite au-dessus des lieux
         """
-        if route is None or len(route.ordre) < 2:
+        if not route or not route.ordre:
             return
         
-        # Dessin des segments de la route
+        # Configuration du style de ligne
+        dash_config = (5, 5) if style == "dash" else ()
+        
+        # Traçage de la route
         for i in range(len(route.ordre) - 1):
             lieu_depart = self.graph.liste_lieux[route.ordre[i]]
             lieu_arrivee = self.graph.liste_lieux[route.ordre[i + 1]]
             
-            # Création de la ligne
-            if style:
-                self.canvas.create_line(
-                    lieu_depart.x, lieu_depart.y,
-                    lieu_arrivee.x, lieu_arrivee.y,
-                    fill=couleur, width=epaisseur, dash=style
-                )
-            else:
-                self.canvas.create_line(
-                    lieu_depart.x, lieu_depart.y,
-                    lieu_arrivee.x, lieu_arrivee.y,
-                    fill=couleur, width=epaisseur
-                )
-            lieu_depart = self.graph.liste_lieux[route.ordre[-1]]
-            lieu_arrivee = self.graph.liste_lieux[route.ordre[0]]
-            
             self.canvas.create_line(lieu_depart.x, lieu_depart.y,
-                                    lieu_arrivee.x, lieu_arrivee.y,
-                                    fill=couleur, width=epaisseur, 
-                                    dash=style if style else None)
+                                   lieu_arrivee.x, lieu_arrivee.y,
+                                   fill=couleur, width=largeur, dash=dash_config)
         
-        # Affichage de l'ordre de visite si demandé
+        # Affichage de l'ordre de visite
         if afficher_ordre:
-            for i, indice_lieu in enumerate(route.ordre[:-1]):  # Pas besoin du dernier (retour au 0)
+            for i, indice_lieu in enumerate(route.ordre[:-1]):  # Exclut le dernier (retour au 0)
                 lieu = self.graph.liste_lieux[indice_lieu]
-                self.canvas.create_text(
-                    lieu.x, lieu.y - 25,
-                    text=str(i + 1),
-                    font=('Arial', 9),
-                    fill='darkblue'
-                )
+                self.canvas.create_text(lieu.x, lieu.y - 25, 
+                                       text=f"#{i}", 
+                                       font=("Arial", 8), 
+                                       fill="red")
     
-    def actualiser_affichage(self, meilleure_route, population_routes=None, info_iteration=None):
+    def afficher_meilleure_route(self, route):
         """
-        Rafraîchit l'affichage complet: efface et redessine tout.
+        Affiche la meilleure route trouvée en bleu pointillé.
         
         Args:
-            meilleure_route (Route): La meilleure route trouvée
-            population_routes (list): Liste des N meilleures routes (optionnel)
-            info_iteration (str): Informations sur l'itération courante (optionnel)
+            route (Route): La meilleure route à afficher
         """
-        # Effacement du canvas
-        self.canvas.delete('all')
-        
-        # Sauvegarde des données
-        self.meilleure_route = meilleure_route
-        if population_routes:
-            self.population_routes = population_routes
-        
-        # Affichage de la population (routes grises) si activé
-        if self.afficher_population and self.population_routes:
-            for route in self.population_routes:
-                if route != meilleure_route:  # On n'affiche pas la meilleure en gris
-                    self.afficher_route(route, couleur='gray', epaisseur=1, afficher_ordre=False)
-        
-        # Affichage de la meilleure route (ligne bleue pointillée)
-        if meilleure_route:
-            self.afficher_route(meilleure_route, couleur='blue', epaisseur=2, style=(5, 5), afficher_ordre=True)
-        
-        # Affichage des lieux (par-dessus les routes)
-        self.afficher_graph()
-        
-        # Mise à jour des informations textuelles
-        if info_iteration:
-            self.ajouter_texte(info_iteration)
-        
-        # Rafraîchissement de l'interface
-        self.root.update()
+        self.meilleure_route = route
+        self.rafraichir_affichage()
     
-    def toggle_affichage_population(self, event=None):
+    def afficher_routes_secondaires(self, routes):
         """
-        Active/désactive l'affichage de la population des routes.
-        Appelé lors de l'appui sur la touche ESPACE.
+        Stocke les N meilleures routes pour affichage optionnel.
         
         Args:
-            event: Événement Tkinter (non utilisé mais requis pour le binding)
+            routes (list): Liste de Route à afficher en gris clair
+        """
+        self.routes_population = routes
+        if self.afficher_population:
+            self.rafraichir_affichage()
+    
+    def toggle_population(self, event=None):
+        """
+        Active/désactive l'affichage des routes secondaires.
         """
         self.afficher_population = not self.afficher_population
+        self.rafraichir_affichage()
         
         if self.afficher_population:
-            self.ajouter_texte(f"Affichage de {len(self.population_routes)} routes de la population activé.")
+            self.ajouter_texte(f"Affichage de {len(self.routes_population)} routes secondaires activé.\n")
         else:
-            self.ajouter_texte("Affichage de la population désactivé.")
+            self.ajouter_texte("Affichage des routes secondaires désactivé.\n")
+    
+    def rafraichir_affichage(self):
+        """
+        Efface et redessine tous les éléments graphiques.
+        """
+        self.canvas.delete("all")
         
-        # Rafraîchissement de l'affichage
-        self.actualiser_affichage(self.meilleure_route, self.population_routes)
+        # Affichage des routes secondaires si activé
+        if self.afficher_population:
+            for route in self.routes_population:
+                self.afficher_route(route, couleur="lightgray", largeur=1, afficher_ordre=False)
+        
+        # Affichage de la meilleure route
+        if self.meilleure_route:
+            self.afficher_route(self.meilleure_route, couleur="blue", 
+                              style="dash", largeur=2, afficher_ordre=True)
+        
+        # Réaffichage des lieux (par-dessus les routes)
+        self.afficher_lieux()
     
     def ajouter_texte(self, texte):
         """
-        Ajoute une ligne de texte dans la zone d'information.
+        Ajoute du texte dans la zone d'information.
         
         Args:
             texte (str): Texte à ajouter
         """
-        self.zone_texte.insert(tk.END, texte + '\n')
-        self.zone_texte.see(tk.END)  # Auto-scroll vers la fin
+        self.text_info.insert(tk.END, texte)
+        self.text_info.see(tk.END)  # Scroll automatique vers le bas
     
     def quitter(self, event=None):
         """
-        Ferme proprement l'application.
-        Appelé lors de l'appui sur la touche ESC.
-        
-        Args:
-            event: Événement Tkinter (non utilisé mais requis pour le binding)
+        Ferme l'application proprement.
         """
-        self.ajouter_texte("Fermeture de l'application...")
+        self.ajouter_texte("\nFermeture de l'application...\n")
         self.root.quit()
         self.root.destroy()
     
-    def demarrer(self):
+    def lancer(self):
         """
-        Lance la boucle principale de l'interface Tkinter.
+        Lance la boucle principale de l'interface graphique.
         """
         self.root.mainloop()
 
+# ============================================================================
+# FONCTION PRINCIPALE (MAIN)
+# ============================================================================
+
+def main():
+    """
+    Fonction principale pour tester le système.
+    Charge un graphe depuis un fichier CSV et affiche l'interface.
+    """
+    print("="*60)
+    print("PROGRAMME TSP - Groupe 5")
+    print("="*60)
+    
+    # Chargement du graphe depuis le fichier CSV
+    nom_fichier = "graph_5.csv"
+    graph = Graph(path=nom_fichier)
+    
+    # Vérification que le graphe est bien chargé
+    if not graph.liste_lieux:
+        print("Erreur: Impossible de charger le graphe. Arrêt du programme.")
+        return
+    
+    print(f"\nGraphe chargé avec {len(graph.liste_lieux)} lieux.")
+    print(f"Matrice de distances: {graph.matrice_od.shape}")
+    
+    # Exemple de création d'une route (algorithme du plus proche voisin simplifié)
+    route_test = Route(graph)
+    route_test.ordre = [0]  # Départ du lieu 0
+    
+    lieux_non_visites = set(range(1, len(graph.liste_lieux)))
+    lieu_actuel = 0
+    
+    while lieux_non_visites:
+        prochain_lieu = graph.plus_proche_voisin(lieu_actuel, lieux_non_visites)
+        route_test.ordre.append(prochain_lieu)
+        lieux_non_visites.remove(prochain_lieu)
+        lieu_actuel = prochain_lieu
+    
+    route_test.ordre.append(0)  # Retour au point de départ
+    
+    distance_totale = route_test.calcul_distance_route()
+    print(f"\nRoute calculée (plus proche voisin):")
+    print(f"Ordre: {route_test.ordre}")
+    print(f"Distance totale: {distance_totale:.2f}")
+    
+    # Création et lancement de l'interface graphique
+    print("\nLancement de l'interface graphique...")
+    affichage = Affichage(graph, titre="Groupe 5 - Léa Léa Lou-Anne Lisa")
+    affichage.afficher_meilleure_route(route_test)
+    affichage.ajouter_texte(f"Route calculée avec l'algorithme du plus proche voisin.\n")
+    affichage.ajouter_texte(f"Distance totale: {distance_totale:.2f}\n")
+    affichage.ajouter_texte(f"Ordre de visite: {route_test.ordre}\n")
+    
+    # Exemple de routes secondaires (pour démonstration)
+    routes_demo = []
+    for _ in range(5):
+        route_random = Route(graph)
+        route_random.ordre = [0] + random.sample(range(1, len(graph.liste_lieux)), 
+                                                 len(graph.liste_lieux) - 1) + [0]
+        routes_demo.append(route_random)
+    
+    affichage.afficher_routes_secondaires(routes_demo)
+    
+    affichage.lancer()
+    
+    print("\nProgramme terminé.")
 
 # ============================================================================
-# EXEMPLE D'UTILISATION
+# POINT D'ENTRÉE
 # ============================================================================
 
 if __name__ == "__main__":
-    # Création d'un graphe
-    graph = Graph()
-    
-    # Option 1: Générer des lieux aléatoires
-    # graph.generer_lieux_aleatoires(NB_LIEUX)
-    
-    # Option 2: Charger depuis un fichier CSV 
-    graph = Graph(path="graph_5.csv")
-    # ou avec un chemin complet:
-    # graph = Graph(path="data/graph_20.csv")
-    
-    # Génération d'une route gloutonne (plus proche voisin)
-    route_gloutonne = Route(graph)
-    route_gloutonne.generer_route_gloutonne()
-    print(f"Route gloutonne: {route_gloutonne}")
-    
-    # Génération de quelques routes aléatoires pour la population
-    population = []
-    for _ in range(5):
-        route = Route(graph)
-        route.generer_route_aleatoire()
-        population.append(route)
-    
-    population.sort(key=lambda r: r.distance)
-
-    # Création et lancement de l'interface graphique
-    affichage = Affichage(graph, nom_groupe="Groupe 5 TSP")
-    affichage.actualiser_affichage(
-        meilleure_route=route_gloutonne,
-        population_routes=population,
-        info_iteration=f"Route initiale (gloutonne): Distance = {route_gloutonne.distance:.2f}"
-    )
-    
-    # Démarrage de l'interface
-    affichage.demarrer()
-
-   
+    main()
