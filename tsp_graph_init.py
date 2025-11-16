@@ -577,3 +577,551 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+"""
+TSP_GA - Algorithme Génétique pour le Concours TSP
+Groupe 5 - Léa Léa Lou-Anne Lisa
+
+COMPATIBLE avec les classes Lieu, Graph, Route, Affichage du code original
+"""
+
+import random
+import time
+
+class TSP_GA:
+    """
+    Algorithme génétique pour résoudre le TSP.
+    Optimisé pour gérer un maximum de lieux sans crasher.
+    """
+    
+    def __init__(self, graph, affichage=None):
+        """
+        Initialise l'algorithme génétique.
+        
+        Args:
+            graph (Graph): Le graphe contenant les lieux
+            affichage (Affichage, optional): Interface graphique (peut être None)
+        """
+        self.graph = graph
+        self.affichage = affichage
+        self.nb_lieux = len(graph.liste_lieux)
+        
+        # Configuration automatique selon le nombre de lieux
+        self._configurer_parametres()
+        
+        # Variables de suivi
+        self.population = []
+        self.meilleure_route = None
+        self.meilleure_distance = float('inf')
+        self.iteration_meilleure = 0
+        
+        print(f"\n{'='*70}")
+        print(f" ALGORITHME GÉNÉTIQUE TSP - Configuration")
+        print(f"{'='*70}")
+        print(f" Nombre de lieux      : {self.nb_lieux}")
+        print(f" Taille population    : {self.taille_population}")
+        print(f" Élites conservées    : {self.nb_elite}")
+        print(f" Taux de crossover    : {self.taux_crossover*100:.0f}%")
+        print(f" Taux de mutation     : {self.taux_mutation*100:.1f}%")
+        print(f" Itérations max       : {self.nb_iterations_max}")
+        print(f"{'='*70}\n")
+    
+    def _configurer_parametres(self):
+        """
+        Adapte les paramètres selon le nombre de lieux.
+        VERSION ULTRA-OPTIMISÉE pour tenir le plus longtemps possible.
+        """
+        n = self.nb_lieux
+        
+        if n <= 10:
+            self.taille_population = 20
+            self.nb_elite = 2
+            self.taux_mutation = 0.1
+            self.taux_crossover = 0.7
+            self.nb_iterations_max = 50
+            self.frequence_affichage = 10
+            
+        elif n <= 20:
+            self.taille_population = 30
+            self.nb_elite = 3
+            self.taux_mutation = 0.08
+            self.taux_crossover = 0.75
+            self.nb_iterations_max = 100
+            self.frequence_affichage = 10
+            
+        elif n <= 50:
+            self.taille_population = 30
+            self.nb_elite = 3
+            self.taux_mutation = 0.05
+            self.taux_crossover = 0.75
+            self.nb_iterations_max = 150
+            self.frequence_affichage = 15
+            
+        elif n <= 100:
+            self.taille_population = 25
+            self.nb_elite = 3
+            self.taux_mutation = 0.05
+            self.taux_crossover = 0.7
+            self.nb_iterations_max = 100
+            self.frequence_affichage = 10
+            
+        elif n <= 200:
+            self.taille_population = 20
+            self.nb_elite = 2
+            self.taux_mutation = 0.08
+            self.taux_crossover = 0.65
+            self.nb_iterations_max = 75
+            self.frequence_affichage = 10
+            
+        elif n <= 500:
+            self.taille_population = 15
+            self.nb_elite = 2
+            self.taux_mutation = 0.1
+            self.taux_crossover = 0.6
+            self.nb_iterations_max = 50
+            self.frequence_affichage = 10
+            
+        elif n <= 1000:
+            self.taille_population = 12
+            self.nb_elite = 2
+            self.taux_mutation = 0.12
+            self.taux_crossover = 0.55
+            self.nb_iterations_max = 40
+            self.frequence_affichage = 10
+            
+        elif n <= 2000:
+            # ZONE CRITIQUE: Réduction drastique
+            self.taille_population = 10
+            self.nb_elite = 1
+            self.taux_mutation = 0.15
+            self.taux_crossover = 0.5
+            self.nb_iterations_max = 30
+            self.frequence_affichage = 10
+            
+        else:  # > 2000 lieux : MODE SURVIE EXTRÊME
+            self.taille_population = max(8, 10000 // n)
+            self.nb_elite = 1
+            self.taux_mutation = 0.2
+            self.taux_crossover = 0.5
+            self.nb_iterations_max = max(20, 20000 // n)
+            self.frequence_affichage = max(5, 50 // (n // 1000))
+    
+    def initialiser_population(self):
+        """
+        Crée la population initiale.
+        1 route gloutonne + (N-1) routes aléatoires.
+        Utilise la vraie classe Route du code original.
+        """
+        print(" Initialisation de la population...")
+        self.population = []
+        
+        # Import de la classe Route depuis le code principal
+        from __main__ import Route
+        
+        # 1. Route gloutonne (meilleure solution de départ)
+        route_gloutonne = Route(self.graph)
+        route_gloutonne.ordre = self._algorithme_glouton()
+        route_gloutonne._distance_cache = route_gloutonne.calcul_distance_route()
+        self.population.append(route_gloutonne)
+        
+        # 2. Routes aléatoires
+        for _ in range(self.taille_population - 1):
+            route = Route(self.graph)
+            lieux = list(range(1, self.nb_lieux))
+            random.shuffle(lieux)
+            route.ordre = [0] + lieux + [0]
+            route._distance_cache = route.calcul_distance_route()
+            self.population.append(route)
+        
+        # Tri de la population (utilise le cache)
+        self.population.sort(key=lambda r: r._distance_cache)
+        
+        # Mise à jour de la meilleure
+        self.meilleure_route = self.population[0]
+        self.meilleure_distance = self.meilleure_route._distance_cache
+        
+        print(f"✅ Population créée: {self.taille_population} individus")
+        print(f" Distance initiale (gloutonne): {self.meilleure_distance:.2f}\n")
+    
+    def _algorithme_glouton(self):
+        """
+        Algorithme du plus proche voisin.
+        
+        Returns:
+            list: Ordre de visite [0, ..., 0]
+        """
+        ordre = [0]
+        lieux_non_visites = set(range(1, self.nb_lieux))
+        lieu_actuel = 0
+        
+        while lieux_non_visites:
+            prochain = self.graph.plus_proche_voisin(lieu_actuel, lieux_non_visites)
+            if prochain is None:
+                break
+            ordre.append(prochain)
+            lieux_non_visites.remove(prochain)
+            lieu_actuel = prochain
+        
+        ordre.append(0)
+        return ordre
+    
+    def selection_tournoi(self, taille_tournoi=3):
+        """
+        Sélectionne un parent par tournoi.
+        Utilise le cache de distance.
+        """
+        taille_tournoi = min(taille_tournoi, len(self.population) // 2)
+        candidats = random.sample(self.population, taille_tournoi)
+        return min(candidats, key=lambda r: r._distance_cache)
+    
+    def crossover_ox(self, parent1, parent2):
+        """
+        Crossover OX (Order Crossover) - Plus robuste que PMX.
+        Garantit toujours une route valide.
+        """
+        from __main__ import Route
+        
+        ordre1 = parent1.ordre[1:-1]
+        ordre2 = parent2.ordre[1:-1]
+        taille = len(ordre1)
+        
+        if taille < 2:
+            # Cas spécial: trop peu de villes
+            enfant = Route(self.graph)
+            enfant.ordre = parent1.ordre.copy()
+            enfant._distance_cache = parent1._distance_cache
+            return enfant
+        
+        # Points de coupe
+        point1 = random.randint(0, taille - 1)
+        point2 = random.randint(point1 + 1, taille)
+        
+        # Création de l'enfant
+        enfant_ordre = [None] * taille
+        
+        # Copie du segment du parent1
+        enfant_ordre[point1:point2] = ordre1[point1:point2]
+        
+        # Remplissage avec parent2 dans l'ordre
+        villes_utilisees = set(enfant_ordre[point1:point2])
+        position = point2
+        
+        for ville in ordre2[point2:] + ordre2[:point2]:
+            if ville not in villes_utilisees:
+                enfant_ordre[position % taille] = ville
+                villes_utilisees.add(ville)
+                position += 1
+        
+        # Création de la route enfant
+        enfant = Route(self.graph)
+        enfant.ordre = [0] + enfant_ordre + [0]
+        enfant._distance_cache = enfant.calcul_distance_route()
+        
+        return enfant
+    
+    def mutation_swap(self, route):
+        """Mutation par échange de deux villes."""
+        if random.random() < self.taux_mutation:
+            ordre = route.ordre[1:-1]
+            if len(ordre) > 1:
+                i, j = random.sample(range(len(ordre)), 2)
+                ordre[i], ordre[j] = ordre[j], ordre[i]
+                route.ordre = [0] + ordre + [0]
+    
+    def mutation_2opt(self, route):
+        """Mutation 2-opt (inversion d'un segment)."""
+        if random.random() < self.taux_mutation * 0.5:
+            ordre = route.ordre[1:-1]
+            if len(ordre) > 3:
+                i = random.randint(0, len(ordre) - 3)
+                j = random.randint(i + 2, len(ordre))
+                ordre[i:j] = reversed(ordre[i:j])
+                route.ordre = [0] + ordre + [0]
+    
+    def nouvelle_generation(self):
+        """
+        Crée une nouvelle génération avec élitisme.
+        Supprime les doublons pour éviter la convergence prématurée.
+        """
+        from __main__ import Route
+        
+        nouvelle_population = []
+        
+        # Élitisme: conservation des meilleures routes
+        for i in range(self.nb_elite):
+            nouvelle_population.append(self.population[i])
+        
+        # Génération du reste
+        compteur = 0
+        tentatives_max = self.taille_population * 5  # Limite de sécurité
+        
+        while len(nouvelle_population) < self.taille_population and compteur < tentatives_max:
+            compteur += 1
+            
+            try:
+                parent1 = self.selection_tournoi()
+                parent2 = self.selection_tournoi()
+                
+                # Crossover
+                if random.random() < self.taux_crossover:
+                    enfant = self.crossover_ox(parent1, parent2)
+                else:
+                    enfant = Route(self.graph)
+                    enfant.ordre = parent1.ordre.copy()
+                    enfant._distance_cache = parent1._distance_cache
+                
+                # Mutations
+                self.mutation_swap(enfant)
+                if self.nb_lieux <= 100:
+                    self.mutation_2opt(enfant)
+                
+                # Recalcul si nécessaire
+                if enfant._distance_cache is None:
+                    enfant._distance_cache = enfant.calcul_distance_route()
+                
+                # SUPPRESSION DES DOUBLONS
+                # Vérifie que cette route n'existe pas déjà
+                est_doublon = False
+                for route_existante in nouvelle_population:
+                    if route_existante.ordre == enfant.ordre:
+                        est_doublon = True
+                        break
+                
+                # Ajoute seulement si pas un doublon
+                if not est_doublon:
+                    nouvelle_population.append(enfant)
+                
+            except Exception as e:
+                # En cas d'erreur, ajoute un individu aléatoire
+                route_aleatoire = Route(self.graph)
+                lieux = list(range(1, self.nb_lieux))
+                random.shuffle(lieux)
+                route_aleatoire.ordre = [0] + lieux + [0]
+                route_aleatoire._distance_cache = route_aleatoire.calcul_distance_route()
+                nouvelle_population.append(route_aleatoire)
+        
+        # Si on n'a pas assez d'individus (trop de doublons), complète avec du aléatoire
+        while len(nouvelle_population) < self.taille_population:
+            route_aleatoire = Route(self.graph)
+            lieux = list(range(1, self.nb_lieux))
+            random.shuffle(lieux)
+            route_aleatoire.ordre = [0] + lieux + [0]
+            route_aleatoire._distance_cache = route_aleatoire.calcul_distance_route()
+            nouvelle_population.append(route_aleatoire)
+        
+        self.population = nouvelle_population
+        
+        # Tri de la population
+        self.population.sort(key=lambda r: r._distance_cache)
+        
+        # Mise à jour de la meilleure solution
+        distance_actuelle = self.population[0]._distance_cache
+        if distance_actuelle < self.meilleure_distance:
+            self.meilleure_route = self.population[0]
+            self.meilleure_distance = distance_actuelle
+            self.iteration_meilleure = self.iteration_courante
+    
+    def executer(self, timeout_max=None):
+        """
+        Exécute l'algorithme génétique avec timeout de sécurité.
+        VERSION FINALE POUR LE CONCOURS.
+        """
+        print("🚀 Démarrage de l'algorithme génétique...\n")
+        temps_debut = time.time()
+        
+        # Timeout automatique selon le nombre de lieux
+        if timeout_max is None:
+            timeout_max = max(30, self.nb_lieux * 0.5)
+        
+        print(f" Timeout de sécurité: {timeout_max:.0f}s\n")
+        
+        # Initialisation
+        self.initialiser_population()
+        
+        # Boucle principale
+        print(f" Exécution de {self.nb_iterations_max} itérations...\n")
+        
+        iterations_effectuees = 0
+        derniere_amelioration = 0
+        
+        for iteration in range(1, self.nb_iterations_max + 1):
+            # Vérification du timeout
+            temps_ecoule = time.time() - temps_debut
+            if temps_ecoule > timeout_max:
+                print(f"\n TIMEOUT atteint ({timeout_max:.0f}s)")
+                break
+            
+            self.iteration_courante = iteration
+            iterations_effectuees = iteration
+            
+            # Nouvelle génération
+            self.nouvelle_generation()
+            
+            # Affichage périodique
+            if iteration % self.frequence_affichage == 0 or iteration == self.nb_iterations_max:
+                temps_ecoule = time.time() - temps_debut
+                vitesse = iteration / temps_ecoule if temps_ecoule > 0 else 0
+                pourcentage = (iteration / self.nb_iterations_max) * 100
+                
+                # Calcul de la diversité (nombre de distances différentes)
+                distances_uniques = len(set(r._distance_cache for r in self.population))
+                
+                print(f" Iter {iteration:4d}/{self.nb_iterations_max} ({pourcentage:5.1f}%) | "
+                      f"Best: {self.meilleure_distance:8.2f} | "
+                      f"Found: iter {self.iteration_meilleure:4d} | "
+                      f"Diversity: {distances_uniques:3d}/{self.taille_population} | "
+                      f"Speed: {vitesse:5.1f} it/s")
+                
+                # Détection de stagnation
+                if self.iteration_meilleure == derniere_amelioration:
+                    iterations_sans_amelioration = iteration - derniere_amelioration
+                    if iterations_sans_amelioration > self.nb_iterations_max // 3:
+                        print(f"   ⚠️  Stagnation: {iterations_sans_amelioration} itérations sans amélioration")
+                else:
+                    derniere_amelioration = self.iteration_meilleure
+        
+        # Résultat final
+        temps_total = time.time() - temps_debut
+        
+        print(f"\n{'='*70}")
+        print(f" RÉSULTAT FINAL")
+        print(f"{'='*70}")
+        print(f" Nombre de lieux        : {self.nb_lieux}")
+        print(f" Itérations effectuées  : {iterations_effectuees}/{self.nb_iterations_max}")
+        print(f" Meilleure distance     : {self.meilleure_distance:.2f}")
+        print(f" Trouvée à l'itération  : {self.iteration_meilleure}")
+        print(f"  Temps d'exécution      : {temps_total:.2f}s")
+        print(f" Vitesse moyenne        : {iterations_effectuees/temps_total:.1f} it/s")
+        print(f"  Route optimale         : {self.meilleure_route.ordre}")
+        
+        # Affichage des 10 meilleures routes (pour vérifier la diversité)
+        print(f"\n Top 10 des meilleures routes:")
+        for i, route in enumerate(self.population[:10], 1):
+            print(f"   {i:2d}. Distance: {route._distance_cache:8.2f} | Route: {route.ordre}")
+        
+        print(f"{'='*70}\n")
+        
+        return self.meilleure_route
+
+
+# ============================================================================
+# FONCTION PRINCIPALE POUR LE CONCOURS
+# ============================================================================
+
+def main_concours(nom_fichier=None):
+    """
+    Fonction principale pour le concours.
+    Compatible avec les classes du code original.
+    Affiche graphiquement le résultat À LA FIN.
+    """
+    print("    TSP - ALGORITHME GÉNÉTIQUE")
+    print("    Groupe 5 - Léa Léa Lou-Anne Lisa")
+    
+    # Import des classes du code original
+    from __main__ import Graph, Affichage
+    
+    # Chargement du graphe
+    if nom_fichier:
+        print(f" Chargement du fichier: {nom_fichier}")
+        graph = Graph(path=nom_fichier)
+    else:
+        # Génération aléatoire pour les tests
+        from __main__ import NB_LIEUX
+        print(f" Mode test: génération de {NB_LIEUX} lieux aléatoires")
+        graph = Graph(path=None, nb_lieux_defaut=NB_LIEUX)
+    
+    if not graph.liste_lieux:
+        print("❌ ERREUR: Impossible de charger le graphe!")
+        return
+    
+    print(f"✅ Graphe chargé: {len(graph.liste_lieux)} lieux\n")
+    
+    # Création et exécution de l'algorithme (SANS affichage pendant)
+    tsp_ga = TSP_GA(graph, affichage=None)
+    meilleure_route = tsp_ga.executer()
+    
+    print("✅ Algorithme terminé avec succès!")
+    print(f" Meilleure distance trouvée: {tsp_ga.meilleure_distance:.2f}\n")
+    
+    # AFFICHAGE GRAPHIQUE À LA FIN
+    print(" Création de l'affichage graphique...")
+    print("   Appuyez sur ESPACE pour afficher/masquer les routes secondaires")
+    print("   Appuyez sur ESC pour quitter\n")
+    
+    affichage = Affichage(graph, titre=f"TSP Concours - Groupe 5 ({len(graph.liste_lieux)} lieux)")
+    
+    # Prépare les N meilleures routes (sans doublons de distance)
+    routes_uniques = []
+    distances_vues = set()
+    
+    for route in tsp_ga.population[:20]:  # Top 20 max
+        dist = route._distance_cache
+        # Garde seulement si distance unique (évite les clones visuels)
+        if dist not in distances_vues:
+            distances_vues.add(dist)
+            routes_uniques.append(route)
+        
+        if len(routes_uniques) >= 10:  # Maximum 10 routes à afficher
+            break
+    
+    print(f" {len(routes_uniques)} routes uniques sélectionnées pour l'affichage")
+    
+    # Affiche les routes secondaires (en gris, cachées par défaut)
+    affichage.afficher_routes_secondaires(routes_uniques[1:])  # Exclut la meilleure
+    
+    # Affiche la meilleure route (en bleu pointillé)
+    affichage.afficher_meilleure_route(meilleure_route)
+    
+    # Ajoute les informations dans la zone de texte
+    affichage.ajouter_texte("="*60 + "\n")
+    affichage.ajouter_texte(" RÉSULTAT DE L'ALGORITHME GÉNÉTIQUE\n")
+    affichage.ajouter_texte("="*60 + "\n")
+    affichage.ajouter_texte(f" Nombre de lieux: {tsp_ga.nb_lieux}\n")
+    affichage.ajouter_texte(f" Meilleure distance: {tsp_ga.meilleure_distance:.2f}\n")
+    affichage.ajouter_texte(f" Trouvée à l'itération: {tsp_ga.iteration_meilleure}\n")
+    affichage.ajouter_texte(f" Total d'itérations: {tsp_ga.iteration_courante}\n")
+    affichage.ajouter_texte(f" Route: {meilleure_route.ordre}\n")
+    affichage.ajouter_texte("="*60 + "\n\n")
+    
+    affichage.ajouter_texte(f" Top {len(routes_uniques)} des routes différentes:\n")
+    for i, route in enumerate(routes_uniques, 1):
+        affichage.ajouter_texte(f"   {i:2d}. Distance: {route._distance_cache:.2f}\n")
+    
+    affichage.ajouter_texte("\n💡 Appuyez sur ESPACE pour voir les routes secondaires en gris\n")
+    affichage.ajouter_texte("💡 Appuyez sur ESC pour quitter\n")
+    
+    # Lance l'interface graphique
+    affichage.lancer()
+    
+    return meilleure_route
+
+
+# ============================================================================
+# TESTS ET LANCEMENT
+# ============================================================================
+
+if __name__ == "__main__":
+    # ========================================================================
+    # CONFIGURATION DU TEST
+    # ========================================================================
+    
+    # Modifiez NB_LIEUX pour tester avec plus de villes
+    
+    from __main__ import Graph
+    # Surcharge temporaire de NB_LIEUX pour ce test
+    import __main__
+    __main__.NB_LIEUX = 70  # CHANGEZ CE NOMBRE POUR TESTER
+    
+    print(f"    TEST avec {__main__.NB_LIEUX} lieux")
+    
+    # ========================================================================
+    # POUR LE CONCOURS (le jour J)
+    # ========================================================================
+    # Le prof dira : "Lancez avec graph_50.csv"
+    # Décommentez et modifiez cette ligne:
+    # meilleure_route = main_concours("graph_50.csv")
+    
+    # ========================================================================
+    # POUR LES TESTS (génération aléatoire)
+    # ========================================================================
+    meilleure_route = main_concours(nom_fichier=None)
