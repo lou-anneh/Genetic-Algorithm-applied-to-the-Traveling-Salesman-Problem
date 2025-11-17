@@ -383,11 +383,14 @@ class Affichage:
         
         for i, lieu in enumerate(self.graph.liste_lieux):
             x, y = lieu.x, lieu.y
+
+            # Couleur spécifique pour le point 0
+            couleur = "red" if i == 0 else "lightgray"
             
             # Dessin du cercle
             self.canvas.create_oval(x - rayon, y - rayon, 
                                    x + rayon, y + rayon,
-                                   fill="lightblue", outline="black", width=2)
+                                   fill=couleur, outline="black", width=2)
             
             # Numéro du lieu au centre
             self.canvas.create_text(x, y, text=str(i), 
@@ -424,9 +427,9 @@ class Affichage:
             for i, indice_lieu in enumerate(route.ordre[:-1]):  # Exclut le dernier (retour au 0)
                 lieu = self.graph.liste_lieux[indice_lieu]
                 self.canvas.create_text(lieu.x, lieu.y - 25, 
-                                       text=f"#{i}", 
+                                       text=f"{i}", 
                                        font=("Arial", 8), 
-                                       fill="red")
+                                       fill="black")
     
     def afficher_meilleure_route(self, route):
         """
