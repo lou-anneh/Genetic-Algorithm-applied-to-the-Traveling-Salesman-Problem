@@ -10,6 +10,8 @@ import random
 import csv
 import tkinter as tk
 from tkinter import Canvas, Text, Scrollbar
+import random
+import time
 
 
 # ============================================================================
@@ -508,88 +510,8 @@ class Affichage:
         self.root.mainloop()
 
 # ============================================================================
-# FONCTION PRINCIPALE (MAIN)
+# CLASSE TSP_GA
 # ============================================================================
-
-def main():
-    """
-    Fonction principale pour tester le système.
-    Charge un graphe depuis un fichier CSV et affiche l'interface.
-    """
-    print("="*60)
-    print("PROGRAMME TSP - Groupe 5")
-    print("="*60)
-    
-    # Chargement du graphe depuis le fichier CSV
-    nom_fichier = "graph_5.csv"
-    graph = Graph(path=nom_fichier)
-    
-    # Vérification que le graphe est bien chargé
-    if not graph.liste_lieux:
-        print("Erreur: Impossible de charger le graphe. Arrêt du programme.")
-        return
-    
-    print(f"\nGraphe chargé avec {len(graph.liste_lieux)} lieux.")
-    print(f"Matrice de distances: {graph.matrice_od.shape}")
-    
-    # Exemple de création d'une route (algorithme du plus proche voisin simplifié)
-    route_test = Route(graph)
-    route_test.ordre = [0]  # Départ du lieu 0
-    
-    lieux_non_visites = set(range(1, len(graph.liste_lieux)))
-    lieu_actuel = 0
-    
-    while lieux_non_visites:
-        prochain_lieu = graph.plus_proche_voisin(lieu_actuel, lieux_non_visites)
-        route_test.ordre.append(prochain_lieu)
-        lieux_non_visites.remove(prochain_lieu)
-        lieu_actuel = prochain_lieu
-    
-    route_test.ordre.append(0)  # Retour au point de départ
-    
-    distance_totale = route_test.calcul_distance_route()
-    print(f"\nRoute calculée (plus proche voisin):")
-    print(f"Ordre: {route_test.ordre}")
-    print(f"Distance totale: {distance_totale:.2f}")
-    
-    # Création et lancement de l'interface graphique
-    print("\nLancement de l'interface graphique...")
-    affichage = Affichage(graph, titre="Groupe 5 - Léa Léa Lou-Anne Lisa")
-    affichage.afficher_meilleure_route(route_test)
-    affichage.ajouter_texte(f"Route calculée avec l'algorithme du plus proche voisin.\n")
-    affichage.ajouter_texte(f"Distance totale: {distance_totale:.2f}\n")
-    affichage.ajouter_texte(f"Ordre de visite: {route_test.ordre}\n")
-    
-    # Exemple de routes secondaires (pour démonstration)
-    routes_demo = []
-    for _ in range(5):
-        route_random = Route(graph)
-        route_random.ordre = [0] + random.sample(range(1, len(graph.liste_lieux)), 
-                                                 len(graph.liste_lieux) - 1) + [0]
-        routes_demo.append(route_random)
-    
-    affichage.afficher_routes_secondaires(routes_demo)
-    
-    affichage.lancer()
-    
-    print("\nProgramme terminé.")
-
-# ============================================================================
-# POINT D'ENTRÉE
-# ============================================================================
-
-if __name__ == "__main__":
-    main()
-
-"""
-TSP_GA - Algorithme Génétique pour le Concours TSP
-Groupe 5 - Léa Léa Lou-Anne Lisa
-
-COMPATIBLE avec les classes Lieu, Graph, Route, Affichage du code original
-"""
-
-import random
-import time
 
 class TSP_GA:
     """
@@ -1005,6 +927,86 @@ class TSP_GA:
         print(f"{'='*70}\n")
         
         return self.meilleure_route
+
+
+
+
+
+
+# ============================================================================
+# FONCTION PRINCIPALE (MAIN)
+# ============================================================================
+
+def main():
+    """
+    Fonction principale pour tester le système.
+    Charge un graphe depuis un fichier CSV et affiche l'interface.
+    """
+    print("="*60)
+    print("PROGRAMME TSP - Groupe 5")
+    print("="*60)
+    
+    # Chargement du graphe depuis le fichier CSV
+    nom_fichier = "graph_5.csv"
+    graph = Graph(path=nom_fichier)
+    
+    # Vérification que le graphe est bien chargé
+    if not graph.liste_lieux:
+        print("Erreur: Impossible de charger le graphe. Arrêt du programme.")
+        return
+    
+    print(f"\nGraphe chargé avec {len(graph.liste_lieux)} lieux.")
+    print(f"Matrice de distances: {graph.matrice_od.shape}")
+    
+    # Exemple de création d'une route (algorithme du plus proche voisin simplifié)
+    route_test = Route(graph)
+    route_test.ordre = [0]  # Départ du lieu 0
+    
+    lieux_non_visites = set(range(1, len(graph.liste_lieux)))
+    lieu_actuel = 0
+    
+    while lieux_non_visites:
+        prochain_lieu = graph.plus_proche_voisin(lieu_actuel, lieux_non_visites)
+        route_test.ordre.append(prochain_lieu)
+        lieux_non_visites.remove(prochain_lieu)
+        lieu_actuel = prochain_lieu
+    
+    route_test.ordre.append(0)  # Retour au point de départ
+    
+    distance_totale = route_test.calcul_distance_route()
+    print(f"\nRoute calculée (plus proche voisin):")
+    print(f"Ordre: {route_test.ordre}")
+    print(f"Distance totale: {distance_totale:.2f}")
+    
+    # Création et lancement de l'interface graphique
+    print("\nLancement de l'interface graphique...")
+    affichage = Affichage(graph, titre="Groupe 5 - Léa Léa Lou-Anne Lisa")
+    affichage.afficher_meilleure_route(route_test)
+    affichage.ajouter_texte(f"Route calculée avec l'algorithme du plus proche voisin.\n")
+    affichage.ajouter_texte(f"Distance totale: {distance_totale:.2f}\n")
+    affichage.ajouter_texte(f"Ordre de visite: {route_test.ordre}\n")
+    
+    # Exemple de routes secondaires (pour démonstration)
+    routes_demo = []
+    for _ in range(5):
+        route_random = Route(graph)
+        route_random.ordre = [0] + random.sample(range(1, len(graph.liste_lieux)), 
+                                                 len(graph.liste_lieux) - 1) + [0]
+        routes_demo.append(route_random)
+    
+    affichage.afficher_routes_secondaires(routes_demo)
+    
+    affichage.lancer()
+    
+    print("\nProgramme terminé.")
+
+# ============================================================================
+# POINT D'ENTRÉE
+# ============================================================================
+
+if __name__ == "__main__":
+    main()
+
 
 
 # ============================================================================
