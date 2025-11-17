@@ -970,107 +970,95 @@ def demo_plus_proche_voisin(graph):
     affichage.ajouter_texte("Démo 1 : Algorithme du plus proche voisin.\n")
     affichage.ajouter_texte(f"Distance totale: {distance_totale:.2f}\n")
     affichage.ajouter_texte(f"Ordre de visite: {route_test.ordre}\n")
-    
-    # Exemple de routes secondaires (pour démonstration)
-    routes_demo = []
-    for _ in range(5):
-        route_random = Route(graph)
-        route_random.ordre = [0] + random.sample(
-            range(1, len(graph.liste_lieux)),
-            len(graph.liste_lieux) - 1
-        ) + [0]
-        routes_demo.append(route_random)
-    
-    affichage.afficher_routes_secondaires(routes_demo)
     affichage.lancer()
     
     print("\nFin de la Démo 1 (plus proche voisin).")
     return route_test
 
 
-# ============================================================================
-# DEMO 2 : ALGORITHME GÉNÉTIQUE
-# ============================================================================
+# # ============================================================================
+# # DEMO 2 : ALGORITHME GÉNÉTIQUE
+# # ============================================================================
 
-def demo_algo_genetique(graph):
-    """
-    Démo 2 : Algorithme génétique TSP_GA sur le même graphe.
-    Affichage graphique final avec les meilleures routes.
-    (Ancien main_concours renommé et adapté pour recevoir un graph.)
-    """
-    print("="*60)
-    print("DÉMO 2 - Algorithme génétique TSP_GA")
-    print("="*60)
-    print("    Groupe 5 - Léa Léa Lou-Anne Lisa")
+# def demo_algo_genetique(graph):
+#     """
+#     Démo 2 : Algorithme génétique TSP_GA sur le même graphe.
+#     Affichage graphique final avec les meilleures routes.
+#     (Ancien main_concours renommé et adapté pour recevoir un graph.)
+#     """
+#     print("="*60)
+#     print("DÉMO 2 - Algorithme génétique TSP_GA")
+#     print("="*60)
+#     print("    Groupe 5 - Léa Léa Lou-Anne Lisa")
     
-    if not graph.liste_lieux:
-        print("❌ ERREUR: Impossible de charger le graphe!")
-        return None
+#     if not graph.liste_lieux:
+#         print("❌ ERREUR: Impossible de charger le graphe!")
+#         return None
     
-    print(f"✅ Graphe chargé: {len(graph.liste_lieux)} lieux\n")
+#     print(f"✅ Graphe chargé: {len(graph.liste_lieux)} lieux\n")
     
-    # Création et exécution de l'algorithme (SANS affichage pendant)
-    tsp_ga = TSP_GA(graph, affichage=None)
-    meilleure_route = tsp_ga.executer()
+#     # Création et exécution de l'algorithme (SANS affichage pendant)
+#     tsp_ga = TSP_GA(graph, affichage=None)
+#     meilleure_route = tsp_ga.executer()
     
-    print("✅ Algorithme terminé avec succès!")
-    print(f" Meilleure distance trouvée: {tsp_ga.meilleure_distance:.2f}\n")
+#     print("✅ Algorithme terminé avec succès!")
+#     print(f" Meilleure distance trouvée: {tsp_ga.meilleure_distance:.2f}\n")
     
-    # AFFICHAGE GRAPHIQUE À LA FIN
-    print(" Création de l'affichage graphique (Démo 2)...")
-    print("   Appuyez sur ESPACE pour afficher/masquer les routes secondaires")
-    print("   Appuyez sur ESC pour quitter\n")
+#     # AFFICHAGE GRAPHIQUE À LA FIN
+#     print(" Création de l'affichage graphique (Démo 2)...")
+#     print("   Appuyez sur ESPACE pour afficher/masquer les routes secondaires")
+#     print("   Appuyez sur ESC pour quitter\n")
     
-    affichage = Affichage(
-        graph,
-        titre=f"TSP - Démo 2 : Algorithme génétique ({len(graph.liste_lieux)} lieux)"
-    )
+#     affichage = Affichage(
+#         graph,
+#         titre=f"TSP - Démo 2 : Algorithme génétique ({len(graph.liste_lieux)} lieux)"
+#     )
     
-    # Prépare les N meilleures routes (sans doublons de distance)
-    routes_uniques = []
-    distances_vues = set()
+#     # Prépare les N meilleures routes (sans doublons de distance)
+#     routes_uniques = []
+#     distances_vues = set()
     
-    for route in tsp_ga.population[:20]:  # Top 20 max
-        dist = route._distance_cache
-        # Garde seulement si distance unique (évite les clones visuels)
-        if dist not in distances_vues:
-            distances_vues.add(dist)
-            routes_uniques.append(route)
+#     for route in tsp_ga.population[:20]:  # Top 20 max
+#         dist = route._distance_cache
+#         # Garde seulement si distance unique (évite les clones visuels)
+#         if dist not in distances_vues:
+#             distances_vues.add(dist)
+#             routes_uniques.append(route)
         
-        if len(routes_uniques) >= 10:  # Maximum 10 routes à afficher
-            break
+#         if len(routes_uniques) >= 10:  # Maximum 10 routes à afficher
+#             break
     
-    print(f" {len(routes_uniques)} routes uniques sélectionnées pour l'affichage")
+#     print(f" {len(routes_uniques)} routes uniques sélectionnées pour l'affichage")
     
-    # Affiche les routes secondaires (en gris, cachées par défaut)
-    if len(routes_uniques) > 1:
-        affichage.afficher_routes_secondaires(routes_uniques[1:])  # Exclut la meilleure
+#     # Affiche les routes secondaires (en gris, cachées par défaut)
+#     if len(routes_uniques) > 1:
+#         affichage.afficher_routes_secondaires(routes_uniques[1:])  # Exclut la meilleure
     
-    # Affiche la meilleure route (en bleu pointillé)
-    affichage.afficher_meilleure_route(meilleure_route)
+#     # Affiche la meilleure route (en bleu pointillé)
+#     affichage.afficher_meilleure_route(meilleure_route)
     
-    # Ajoute les informations dans la zone de texte
-    affichage.ajouter_texte("="*60 + "\n")
-    affichage.ajouter_texte(" RÉSULTAT DE L'ALGORITHME GÉNÉTIQUE (Démo 2)\n")
-    affichage.ajouter_texte("="*60 + "\n")
-    affichage.ajouter_texte(f" Nombre de lieux: {tsp_ga.nb_lieux}\n")
-    affichage.ajouter_texte(f" Meilleure distance: {tsp_ga.meilleure_distance:.2f}\n")
-    affichage.ajouter_texte(f" Trouvée à l'itération: {tsp_ga.iteration_meilleure}\n")
-    affichage.ajouter_texte(f" Total d'itérations: {tsp_ga.iteration_courante}\n")
-    affichage.ajouter_texte(f" Route: {meilleure_route.ordre}\n")
-    affichage.ajouter_texte("="*60 + "\n\n")
+#     # Ajoute les informations dans la zone de texte
+#     affichage.ajouter_texte("="*60 + "\n")
+#     affichage.ajouter_texte(" RÉSULTAT DE L'ALGORITHME GÉNÉTIQUE (Démo 2)\n")
+#     affichage.ajouter_texte("="*60 + "\n")
+#     affichage.ajouter_texte(f" Nombre de lieux: {tsp_ga.nb_lieux}\n")
+#     affichage.ajouter_texte(f" Meilleure distance: {tsp_ga.meilleure_distance:.2f}\n")
+#     affichage.ajouter_texte(f" Trouvée à l'itération: {tsp_ga.iteration_meilleure}\n")
+#     affichage.ajouter_texte(f" Total d'itérations: {tsp_ga.iteration_courante}\n")
+#     affichage.ajouter_texte(f" Route: {meilleure_route.ordre}\n")
+#     affichage.ajouter_texte("="*60 + "\n\n")
     
-    affichage.ajouter_texte(f" Top {len(routes_uniques)} des routes différentes:\n")
-    for i, route in enumerate(routes_uniques, 1):
-        affichage.ajouter_texte(f"   {i:2d}. Distance: {route._distance_cache:.2f}\n")
+#     affichage.ajouter_texte(f" Top {len(routes_uniques)} des routes différentes:\n")
+#     for i, route in enumerate(routes_uniques, 1):
+#         affichage.ajouter_texte(f"   {i:2d}. Distance: {route._distance_cache:.2f}\n")
     
-    affichage.ajouter_texte("\n💡 Appuyez sur ESPACE pour voir les routes secondaires en gris\n")
-    affichage.ajouter_texte("💡 Appuyez sur ESC pour quitter\n")
+#     affichage.ajouter_texte("\n💡 Appuyez sur ESPACE pour voir les routes secondaires en gris\n")
+#     affichage.ajouter_texte("💡 Appuyez sur ESC pour quitter\n")
     
-    # Lance l'interface graphique
-    affichage.lancer()
+#     # Lance l'interface graphique
+#     affichage.lancer()
     
-    return meilleure_route
+#     return meilleure_route
 
 
 # ============================================================================
@@ -1089,21 +1077,21 @@ if __name__ == "__main__":
     # CONFIGURATION DE LA SOURCE DES POINTS
     # ========================================================================
     
-    # === OPTION 1 : FICHIER CSV (pour le concours, le jour J) ==============
-    # Décommente ces lignes et commente la partie "OPTION 2" si tu veux
-    # utiliser un fichier imposé, par exemple "graph_50.csv".
+    # # === OPTION 1 : FICHIER CSV (pour le concours, le jour J) ==============
+    # # Décommente ces lignes et commente la partie "OPTION 2" si tu veux
+    # # utiliser un fichier imposé, par exemple "graph_50.csv".
     
-    nom_fichier = "graph_20.csv"   # À adapter : "graph_50.csv" le jour J
-    print(f"    TEST avec le fichier {nom_fichier}")
-    graph = Graph(path=nom_fichier)
+    # nom_fichier = "graph_20.csv"   # À adapter : "graph_50.csv" le jour J
+    # print(f"    TEST avec le fichier {nom_fichier}")
+    # graph = Graph(path=nom_fichier)
     
     # # === OPTION 2 : GÉNÉRATION ALÉATOIRE (pour les tests) ===================
     # # C’est cette option qui est active par défaut.
     
-    # import __main__
-    # __main__.NB_LIEUX = 10  # CHANGEZ CE NOMBRE POUR TESTER AVEC PLUS/MOINS DE VILLES
-    # print(f"    TEST avec {__main__.NB_LIEUX} lieux (génération aléatoire)")
-    # graph = Graph(path=None, nb_lieux_defaut=__main__.NB_LIEUX)
+    import __main__
+    __main__.NB_LIEUX = 10 
+    print(f"    TEST avec {__main__.NB_LIEUX} lieux (génération aléatoire)")
+    graph = Graph(path=None, nb_lieux_defaut=__main__.NB_LIEUX)
     
     # Vérification graphe
     if not graph.liste_lieux:
@@ -1111,5 +1099,5 @@ if __name__ == "__main__":
     else:
         # Lancement des deux démos
         demo_plus_proche_voisin(graph)
-        demo_algo_genetique(graph)
+        # demo_algo_genetique(graph)
    
