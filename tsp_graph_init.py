@@ -248,7 +248,7 @@ class Graph:
                 self.matrice_od[j][i] = dist
         
         print("Matrice des distances calculée.")
-        return self.matrice_od
+        return self.matrice_od   
 
     def plus_proche_voisin(self, indice_lieu, lieux_non_visites):
             """
@@ -930,35 +930,20 @@ class TSP_GA:
 
 
 
-
-
-
 # ============================================================================
-# FONCTION PRINCIPALE (MAIN)
+# DEMO 1 : PLUS PROCHE VOISIN
 # ============================================================================
 
-def main():
+def demo_plus_proche_voisin(graph):
     """
-    Fonction principale pour tester le système.
-    Charge un graphe depuis un fichier CSV et affiche l'interface.
+    Démo avec l'algorithme du plus proche voisin + affichage graphique.
+    Sert de route de référence.
     """
     print("="*60)
-    print("PROGRAMME TSP - Groupe 5")
+    print("DÉMO 1 - Plus proche voisin (route de référence)")
     print("="*60)
     
-    # Chargement du graphe depuis le fichier CSV
-    nom_fichier = "graph_5.csv"
-    graph = Graph(path=nom_fichier)
-    
-    # Vérification que le graphe est bien chargé
-    if not graph.liste_lieux:
-        print("Erreur: Impossible de charger le graphe. Arrêt du programme.")
-        return
-    
-    print(f"\nGraphe chargé avec {len(graph.liste_lieux)} lieux.")
-    print(f"Matrice de distances: {graph.matrice_od.shape}")
-    
-    # Exemple de création d'une route (algorithme du plus proche voisin simplifié)
+    # Création de la route (plus proche voisin)
     route_test = Route(graph)
     route_test.ordre = [0]  # Départ du lieu 0
     
@@ -979,10 +964,10 @@ def main():
     print(f"Distance totale: {distance_totale:.2f}")
     
     # Création et lancement de l'interface graphique
-    print("\nLancement de l'interface graphique...")
-    affichage = Affichage(graph, titre="Groupe 5 - Léa Léa Lou-Anne Lisa")
+    print("\nLancement de l'interface graphique (Démo 1)...")
+    affichage = Affichage(graph, titre="Groupe 5 - Démo 1 : Plus proche voisin")
     affichage.afficher_meilleure_route(route_test)
-    affichage.ajouter_texte(f"Route calculée avec l'algorithme du plus proche voisin.\n")
+    affichage.ajouter_texte("Démo 1 : Algorithme du plus proche voisin.\n")
     affichage.ajouter_texte(f"Distance totale: {distance_totale:.2f}\n")
     affichage.ajouter_texte(f"Ordre de visite: {route_test.ordre}\n")
     
@@ -990,54 +975,37 @@ def main():
     routes_demo = []
     for _ in range(5):
         route_random = Route(graph)
-        route_random.ordre = [0] + random.sample(range(1, len(graph.liste_lieux)), 
-                                                 len(graph.liste_lieux) - 1) + [0]
+        route_random.ordre = [0] + random.sample(
+            range(1, len(graph.liste_lieux)),
+            len(graph.liste_lieux) - 1
+        ) + [0]
         routes_demo.append(route_random)
     
     affichage.afficher_routes_secondaires(routes_demo)
-    
     affichage.lancer()
     
-    print("\nProgramme terminé.")
-
-# ============================================================================
-# POINT D'ENTRÉE
-# ============================================================================
-
-if __name__ == "__main__":
-    main()
-
+    print("\nFin de la Démo 1 (plus proche voisin).")
+    return route_test
 
 
 # ============================================================================
-# FONCTION PRINCIPALE POUR LE CONCOURS
+# DEMO 2 : ALGORITHME GÉNÉTIQUE
 # ============================================================================
 
-def main_concours(nom_fichier=None):
+def demo_algo_genetique(graph):
     """
-    Fonction principale pour le concours.
-    Compatible avec les classes du code original.
-    Affiche graphiquement le résultat À LA FIN.
+    Démo 2 : Algorithme génétique TSP_GA sur le même graphe.
+    Affichage graphique final avec les meilleures routes.
+    (Ancien main_concours renommé et adapté pour recevoir un graph.)
     """
-    print("    TSP - ALGORITHME GÉNÉTIQUE")
+    print("="*60)
+    print("DÉMO 2 - Algorithme génétique TSP_GA")
+    print("="*60)
     print("    Groupe 5 - Léa Léa Lou-Anne Lisa")
-    
-    # Import des classes du code original
-    from __main__ import Graph, Affichage
-    
-    # Chargement du graphe
-    if nom_fichier:
-        print(f" Chargement du fichier: {nom_fichier}")
-        graph = Graph(path=nom_fichier)
-    else:
-        # Génération aléatoire pour les tests
-        from __main__ import NB_LIEUX
-        print(f" Mode test: génération de {NB_LIEUX} lieux aléatoires")
-        graph = Graph(path=None, nb_lieux_defaut=NB_LIEUX)
     
     if not graph.liste_lieux:
         print("❌ ERREUR: Impossible de charger le graphe!")
-        return
+        return None
     
     print(f"✅ Graphe chargé: {len(graph.liste_lieux)} lieux\n")
     
@@ -1049,11 +1017,14 @@ def main_concours(nom_fichier=None):
     print(f" Meilleure distance trouvée: {tsp_ga.meilleure_distance:.2f}\n")
     
     # AFFICHAGE GRAPHIQUE À LA FIN
-    print(" Création de l'affichage graphique...")
+    print(" Création de l'affichage graphique (Démo 2)...")
     print("   Appuyez sur ESPACE pour afficher/masquer les routes secondaires")
     print("   Appuyez sur ESC pour quitter\n")
     
-    affichage = Affichage(graph, titre=f"TSP Concours - Groupe 5 ({len(graph.liste_lieux)} lieux)")
+    affichage = Affichage(
+        graph,
+        titre=f"TSP - Démo 2 : Algorithme génétique ({len(graph.liste_lieux)} lieux)"
+    )
     
     # Prépare les N meilleures routes (sans doublons de distance)
     routes_uniques = []
@@ -1072,14 +1043,15 @@ def main_concours(nom_fichier=None):
     print(f" {len(routes_uniques)} routes uniques sélectionnées pour l'affichage")
     
     # Affiche les routes secondaires (en gris, cachées par défaut)
-    affichage.afficher_routes_secondaires(routes_uniques[1:])  # Exclut la meilleure
+    if len(routes_uniques) > 1:
+        affichage.afficher_routes_secondaires(routes_uniques[1:])  # Exclut la meilleure
     
     # Affiche la meilleure route (en bleu pointillé)
     affichage.afficher_meilleure_route(meilleure_route)
     
     # Ajoute les informations dans la zone de texte
     affichage.ajouter_texte("="*60 + "\n")
-    affichage.ajouter_texte(" RÉSULTAT DE L'ALGORITHME GÉNÉTIQUE\n")
+    affichage.ajouter_texte(" RÉSULTAT DE L'ALGORITHME GÉNÉTIQUE (Démo 2)\n")
     affichage.ajouter_texte("="*60 + "\n")
     affichage.ajouter_texte(f" Nombre de lieux: {tsp_ga.nb_lieux}\n")
     affichage.ajouter_texte(f" Meilleure distance: {tsp_ga.meilleure_distance:.2f}\n")
@@ -1102,31 +1074,42 @@ def main_concours(nom_fichier=None):
 
 
 # ============================================================================
-# TESTS ET LANCEMENT
+# POINT D'ENTRÉE UNIQUE
+# ============================================================================
+# Ici : SEULEMENT le choix entre fichier d'entrée et génération aléatoire,
+# puis l'appel des deux démos dans l'ordre.
 # ============================================================================
 
 if __name__ == "__main__":
-    # ========================================================================
-    # CONFIGURATION DU TEST
-    # ========================================================================
-    
-    # Modifiez NB_LIEUX pour tester avec plus de villes
-    
-    from __main__ import Graph
-    # Surcharge temporaire de NB_LIEUX pour ce test
-    import __main__
-    __main__.NB_LIEUX = 70  # CHANGEZ CE NOMBRE POUR TESTER
-    
-    print(f"    TEST avec {__main__.NB_LIEUX} lieux")
+    print("="*60)
+    print("PROGRAMME TSP - Groupe 5")
+    print("="*60)
     
     # ========================================================================
-    # POUR LE CONCOURS (le jour J)
+    # CONFIGURATION DE LA SOURCE DES POINTS
     # ========================================================================
-    # Le prof dira : "Lancez avec graph_50.csv"
-    # Décommentez et modifiez cette ligne:
-    # meilleure_route = main_concours("graph_50.csv")
     
-    # ========================================================================
-    # POUR LES TESTS (génération aléatoire)
-    # ========================================================================
-    meilleure_route = main_concours(nom_fichier=None)
+    # === OPTION 1 : FICHIER CSV (pour le concours, le jour J) ==============
+    # Décommente ces lignes et commente la partie "OPTION 2" si tu veux
+    # utiliser un fichier imposé, par exemple "graph_50.csv".
+    
+    nom_fichier = "graph_20.csv"   # À adapter : "graph_50.csv" le jour J
+    print(f"    TEST avec le fichier {nom_fichier}")
+    graph = Graph(path=nom_fichier)
+    
+    # # === OPTION 2 : GÉNÉRATION ALÉATOIRE (pour les tests) ===================
+    # # C’est cette option qui est active par défaut.
+    
+    # import __main__
+    # __main__.NB_LIEUX = 10  # CHANGEZ CE NOMBRE POUR TESTER AVEC PLUS/MOINS DE VILLES
+    # print(f"    TEST avec {__main__.NB_LIEUX} lieux (génération aléatoire)")
+    # graph = Graph(path=None, nb_lieux_defaut=__main__.NB_LIEUX)
+    
+    # Vérification graphe
+    if not graph.liste_lieux:
+        print("Erreur: Impossible de charger/générer le graphe. Arrêt du programme.")
+    else:
+        # Lancement des deux démos
+        demo_plus_proche_voisin(graph)
+        demo_algo_genetique(graph)
+   
