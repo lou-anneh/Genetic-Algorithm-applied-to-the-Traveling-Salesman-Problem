@@ -82,6 +82,9 @@ import random
 import csv
 # Assure-toi que Lieu est défini au-dessus de ce code
 # Assure-toi que les constantes (LARGEUR, HAUTEUR, NB_LIEUX) sont définies
+# ============================================================================
+# CLASSE GRAPH
+# ============================================================================
 
 class Graph:
     """
@@ -90,41 +93,23 @@ class Graph:
     """
     
     def __init__(self, path=None, nb_lieux_defaut=NB_LIEUX):
-        """
-        Initialise un graphe.
-        Si path est None, génère des lieux aléatoires (Cas 1).
-        Si path est fourni, charge les lieux depuis le fichier (Cas 2).
-        
-        Args:
-            path (str, optional): Chemin vers le fichier CSV.
-            nb_lieux_defaut (int, optional): Nombre de lieux à générer si path est None.
-        """
         self.liste_lieux = []
         self.matrice_od = None
         
         if path is None:
-            # CAS 1: Génération aléatoire si aucun fichier n'est fourni
             print("Mode: Génération aléatoire de lieux.")
             self.generer_lieux_aleatoires(nb_lieux_defaut)
         else:
-            # CAS 2: Chargement depuis un fichier
             print(f"Mode: Chargement depuis le fichier {path}.")
             self.charger_graph(path)
             
-        # Après la génération OU le chargement, on calcule la matrice
         if self.liste_lieux:
             self.calcul_matrice_cout_od()
         else:
             print("Erreur: Aucun lieu n'a été chargé ou généré.")
-
     
     def generer_lieux_aleatoires(self, nb_lieux=NB_LIEUX):
-        """
-        CAS 1: Génère aléatoirement des lieux dans l'espace défini par LARGEUR et HAUTEUR.
-        
-        Args:
-            nb_lieux (int): Nombre de lieux à générer
-        """
+        """Génère aléatoirement des lieux dans l'espace défini."""
         self.liste_lieux = []
         
         for i in range(nb_lieux):
@@ -135,102 +120,52 @@ class Graph:
         
         print(f"{nb_lieux} lieux générés aléatoirement.")
     
-    
     def charger_graph(self, nom_fichier):
-        """
-        CAS 2 : Charge la liste des lieux depuis un fichier CSV.
-        Format attendu du CSV: nom,x,y (avec ou sans en-tête)
-        Met également à jour la variable globale NB_LIEUX.
-        
-        Args:
-            nom_fichier (str): Chemin vers le fichier CSV (ex: "graph_5.csv")
-        """
+        """Charge la liste des lieux depuis un fichier CSV (VERSION CORRIGÉE)."""
         self.liste_lieux = []
-        global NB_LIEUX # Indique qu'on veut modifier la variable GLOBALE
+        global NB_LIEUX
 
+        # Extraction NB_LIEUX depuis le nom
         try:
-            # Extraction de NB_LIEUX depuis le nom du fichier
-            # Ex: "data/graph_5.csv" -> "graph_5.csv"
             nom_base = nom_fichier.split('/')[-1]
-            # "graph_5.csv" -> ["graph", "5.csv"] -> "5.csv"
             partie_num = nom_base.split('_')[1]
-            # "5.csv" -> ["5", "csv"] -> "5"
             nb_str = partie_num.split('.')[0]
-            
             NB_LIEUX = int(nb_str)
-            print(f"Variable globale NB_LIEUX mise à jour à {NB_LIEUX} (via le nom du fichier).")
-
+            print(f"NB_LIEUX extrait: {NB_LIEUX}")
         except (IndexError, ValueError, TypeError):
-            print(f"Avertissement: Impossible d'extraire NB_LIEUX depuis le nom '{nom_fichier}'.")
-            print("Le format attendu est 'prefix_NOMBRE.csv'.")
-        
+            print(f"Impossible d'extraire NB_LIEUX depuis '{nom_fichier}'")
+
         try:
             with open(nom_fichier, 'r', encoding='utf-8') as fichier:
                 lecteur = csv.reader(fichier)
                 
+                # UNE SEULE BOUCLE pour lire toutes les lignes
                 for num_ligne, ligne in enumerate(lecteur):
-                    if len(ligne) <2 :
+                    if len(ligne) < 2:
                         continue
                     
-                    print(f"Ligne {num_ligne}: {ligne}")
-                    
-                # Lecture de la première ligne pour détecter si c'est un en-tête
-                # premiere_ligne = next(lecteur)
-                # print(f"Première ligne du fichier: {premiere_ligne}")
-                
-                # On vérifie si la première ligne est une donnée (x, y)
                     try:
-                    # On vérifie les colonnes 1 et 2 pour les nombres
                         x = float(ligne[0])
                         y = float(ligne[1])
-                    
-                        nom=str(len(self.liste_lieux))
+                        nom = str(len(self.liste_lieux))
                         lieu = Lieu(x, y, nom)
                         self.liste_lieux.append(lieu)
-                
-                    except (ValueError, IndexError): 
+                    except (ValueError, IndexError):
                         pass
-                    # C'est un en-tête (ex: "nom", "x", "y") ou format invalide, on l'ignore 
-                    
-                
-                # Lecture du reste des lignes
-                for ligne in lecteur:
-                    if len(ligne) >= 3: # S'assurer qu'on a au moins 3 colonnes
-                        try:
-                            x = float(ligne[0])
-                            y = float(ligne[1])
-                            
-                            nom=str(len(self.liste_lieux))
-                            lieu = Lieu(x, y, nom)
-                            self.liste_lieux.append(lieu)
-                            
-                        except ValueError:
-                            # Ignorer les lignes mal formatées (ex: du texte dans x ou y)
-                            print(f"Ligne ignorée (format non numérique): {ligne}")
-                
-            print(f"{len(self.liste_lieux)} lieux chargés depuis {nom_fichier}.")
             
-            # Vérification de cohérence
+            print(f"{len(self.liste_lieux)} lieux chargés depuis {nom_fichier}")
+            
             if len(self.liste_lieux) != NB_LIEUX:
-                 print(f"Avertissement: Le fichier contient {len(self.liste_lieux)} lieux, "
-                       f"mais le nom du fichier indiquait {NB_LIEUX}.")
-                 # On met à jour NB_LIEUX pour refléter la réalité du fichier
-                 NB_LIEUX = len(self.liste_lieux)
-                 print(f"NB_LIEUX ajusté à {NB_LIEUX}.")
-
+                print(f"⚠️ Incohérence: {len(self.liste_lieux)} lieux vs {NB_LIEUX} attendus")
+                NB_LIEUX = len(self.liste_lieux)
+                
         except FileNotFoundError:
-            print(f"Erreur: Le fichier {nom_fichier} n'existe pas.")
-        except StopIteration:
-            # Gère le cas où le fichier est complètement vide
-            print(f"Erreur: Le fichier {nom_fichier} est vide.")
+            print(f"❌ Fichier {nom_fichier} introuvable")
         except Exception as e:
-            print(f"Erreur lors du chargement du fichier: {e}")
-
+            print(f"❌ Erreur: {e}")
     
     def calcul_matrice_cout_od(self):
-        """
-        Calcule la matrice des distances (coûts) entre tous les lieux du graphe.
-        """
+        """Calcule la matrice des distances entre tous les lieux."""
         n = len(self.liste_lieux)
         if n == 0:
             print("Impossible de calculer la matrice: liste_lieux est vide.")
@@ -245,39 +180,24 @@ class Graph:
                 self.matrice_od[j][i] = dist
         
         print("Matrice des distances calculée.")
-        return self.matrice_od   
+        return self.matrice_od
 
     def plus_proche_voisin(self, indice_lieu, lieux_non_visites):
-            """
-            Trouve le plus proche voisin d'un lieu donné parmi un ensemble de lieux non visités.
-            Utilise la matrice de distances précalculée.
-            Optimisation: ne parcourt que les lieux du set fourni au lieu de toute la liste.
-            
-            Args:
-                indice_lieu (int): Indice du lieu de référence
-                lieux_non_visites (set): Ensemble des indices des lieux non encore visités
-                
-            Returns:
-                int: Indice du plus proche voisin, ou None si l'ensemble est vide
-            """
-            if not lieux_non_visites:
-                return None
-            
-            # Distance minimale initialisée à l'infini
-            distance_min = float('inf')
-            indice_plus_proche = None
-            
-            # Parcours uniquement des lieux non visités (optimisation)
-            for i in lieux_non_visites:
-                # Récupération de la distance depuis la matrice précalculée
-                dist = self.matrice_od[indice_lieu][i]
-                
-                # Mise à jour si on trouve un lieu plus proche
-                if dist < distance_min:
-                    distance_min = dist
-                    indice_plus_proche = i
-            
-            return indice_plus_proche
+        """Trouve le plus proche voisin d'un lieu donné."""
+        if not lieux_non_visites:
+            return None
+        
+        distance_min = float('inf')
+        indice_plus_proche = None
+        
+        for i in lieux_non_visites:
+            dist = self.matrice_od[indice_lieu][i]
+            if dist < distance_min:
+                distance_min = dist
+                indice_plus_proche = i
+        
+        return indice_plus_proche
+
 
 # ============================================================================
 # CLASSE ROUTE
@@ -377,49 +297,42 @@ class Affichage:
     def afficher_lieux(self):
         """
         Affiche tous les lieux du graphe sous forme de cercles avec leur numéro.
+        Adapte la taille des points et du texte selon le nombre de lieux.
         """
-        rayon = 15
-        
+        n = len(self.graph.liste_lieux)
+        # Rayon diminue si beaucoup de lieux
+        rayon = max(2, 15 - n // 30)
+        font_size = max(5, 10 - n // 30)
+
         for i, lieu in enumerate(self.graph.liste_lieux):
             x, y = lieu.x, lieu.y
-
-            # Couleur spécifique pour le point 0
             couleur = "red" if i == 0 else "lightgray"
-            
-            # Dessin du cercle
-            self.canvas.create_oval(x - rayon, y - rayon, 
-                                   x + rayon, y + rayon,
-                                   fill=couleur, outline="black", width=2)
-            
+            self.canvas.create_oval(x - rayon, y - rayon,
+                                    x + rayon, y + rayon,
+                                    fill=couleur, outline="black", width=1)
             # Numéro du lieu au centre
-            self.canvas.create_text(x, y, text=str(i), 
-                                   font=("Arial", 10, "bold"))
-    
-    def afficher_route(self, route, couleur="blue", style="", largeur=2, afficher_ordre=True):
-        """
-        Affiche une route sur le canvas.
-        
-        Args:
-            route (Route): La route à afficher
-            couleur (str): Couleur de la ligne
-            style (str): Style de ligne ("" pour continu, "dash" pour pointillé)
-            largeur (int): Épaisseur de la ligne
-            afficher_ordre (bool): Si True, affiche l'ordre de visite au-dessus des lieux
-        """
+            if rayon >= 4:  # ne pas écrire si trop petit
+                self.canvas.create_text(x, y, text=str(i),
+                                        font=("Arial", font_size, "bold"))
+
+    def afficher_route(self, route, couleur="blue", style="", largeur=None, afficher_ordre=True, tag=None):
         if not route or not route.ordre:
             return
         
-        # Configuration du style de ligne
         dash_config = (5, 5) if style == "dash" else ()
-        
-        # Traçage de la route
+        n = len(self.graph.liste_lieux)
+        if largeur is None:
+            largeur = max(1, 3 - n // 100)
+
         for i in range(len(route.ordre) - 1):
             lieu_depart = self.graph.liste_lieux[route.ordre[i]]
             lieu_arrivee = self.graph.liste_lieux[route.ordre[i + 1]]
             
             self.canvas.create_line(lieu_depart.x, lieu_depart.y,
-                                   lieu_arrivee.x, lieu_arrivee.y,
-                                   fill=couleur, width=largeur, dash=dash_config)
+                                    lieu_arrivee.x, lieu_arrivee.y,
+                                    fill=couleur, width=largeur, dash=dash_config,
+                                    tags=tag)
+
     
     def afficher_meilleure_route(self, route):
         """
@@ -455,23 +368,19 @@ class Affichage:
             self.ajouter_texte("Affichage des routes secondaires désactivé.\n")
     
     def rafraichir_affichage(self):
-        """
-        Efface et redessine tous les éléments graphiques.
-        """
-        self.canvas.delete("all")
-        
+        # self.canvas.delete("all")  # <- on ne supprime plus tout
+        # Supprimer uniquement les routes existantes
+        self.canvas.delete("route")  # On utilisera un tag 'route' pour toutes les lignes
+
         # Affichage des routes secondaires si activé
         if self.afficher_population:
             for route in self.routes_population:
-                self.afficher_route(route, couleur="lightgray", largeur=1, afficher_ordre=False)
+                self.afficher_route(route, couleur="lightgray", largeur=1, afficher_ordre=False, tag="route")
         
         # Affichage de la meilleure route
         if self.meilleure_route:
-            self.afficher_route(self.meilleure_route, couleur="blue", 
-                              style="dash", largeur=2, afficher_ordre=True)
-        
-        # Réaffichage des lieux (par-dessus les routes)
-        self.afficher_lieux()
+            self.afficher_route(self.meilleure_route, couleur="blue", style="dash", largeur=2, afficher_ordre=True, tag="route")
+
     
     def ajouter_texte(self, texte):
         """
@@ -534,11 +443,6 @@ class TSP_GA_Interactive:
         self.iteration_meilleure = 0
         self.iteration_courante = 0
         self.en_cours = False
-
-    """
-    REMPLACE UNIQUEMENT CES 3 MÉTHODES dans ta classe TSP_GA_Interactive existante
-    NE TOUCHE À RIEN D'AUTRE !
-    """
 
     def _configurer_parametres(self):
         """Version optimisée pour la VITESSE (réduit itérations et population)"""
@@ -754,7 +658,7 @@ class TSP_GA_Interactive:
         elif n <= 1000:
             return True, 0.05          # RÉDUIT de 0.4 à 0.05 (CRITIQUE!)
         elif n <= 5000:
-            return True, 0.02          # RÉDUIT de 0.2 à 0.02
+            return True, 0.0          # RÉDUIT de 0.2 à 0.02
         elif n <= 10000:
             return True, 0.01          # RÉDUIT de 0.1 à 0.01
         elif n <= 50000:
@@ -1139,16 +1043,7 @@ if __name__ == "__main__":
 
     if utiliser_fichier:
         nom_fichier = "graph_20.csv" 
-        graph = Graph(path=nom_fichier)
-
-    # === OPTION 2 : GÉNÉRATION ALÉATOIRE ===========================
+        main_interactive(nom_fichier=nom_fichier)
     else:
-        NB_LIEUX = 10000  # <<<<<<<< tu mets la valeur que tu veux ici
-        graph = Graph(path=None, nb_lieux_defaut=NB_LIEUX)
-
-    # Vérification
-    if not graph.liste_lieux:
-        print("Erreur: graphe vide.")
-    else:
-        # Lancement du programme interactif complet
+        NB_LIEUX = 500
         main_interactive(nom_fichier=None)
