@@ -893,5 +893,5 @@ if __name__ == "__main__":
         nom_fichier = "graph_20.csv" 
         main_interactive(nom_fichier=nom_fichier)
     else:
-        NB_LIEUX = 10000
+        NB_LIEUX = 500
         main_interactive(nom_fichier=None)
