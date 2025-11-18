@@ -418,25 +418,14 @@ L'affichage se met à jour pendant l'exécution
 import threading
 
 class TSP_GA_Interactive:
-    """
-    Algorithme génétique avec affichage interactif.
-    Mise à jour de l'affichage pendant l'exécution.
-    """
-    
+
     def __init__(self, graph, affichage):
-        """
-        Args:
-            graph (Graph): Le graphe
-            affichage (Affichage): L'interface graphique
-        """
         self.graph = graph
         self.affichage = affichage
         self.nb_lieux = len(graph.liste_lieux)
         
-        # Configuration
         self._configurer_parametres()
         
-        # Variables
         self.population = []
         self.meilleure_route = None
         self.meilleure_distance = float('inf')
@@ -445,30 +434,16 @@ class TSP_GA_Interactive:
         self.en_cours = False
 
     def _configurer_parametres(self):
-        """Version optimisée pour la VITESSE (réduit itérations et population)"""
+        """Configuration MINIMALISTE pour garantir stabilité"""
         n = self.nb_lieux
         
-        if n <= 10:
-            self.taille_population = 20
-            self.nb_elite = 2
-            self.taux_mutation = 0.1
-            self.taux_crossover = 0.7
-            self.nb_iterations_max = 50
-            self.frequence_affichage = 5
-        elif n <= 20:
-            self.taille_population = 30
-            self.nb_elite = 3
-            self.taux_mutation = 0.08
-            self.taux_crossover = 0.75
-            self.nb_iterations_max = 100
-            self.frequence_affichage = 10
-        elif n <= 50:
+        if n <= 50:
             self.taille_population = 30
             self.nb_elite = 3
             self.taux_mutation = 0.05
             self.taux_crossover = 0.75
-            self.nb_iterations_max = 150
-            self.frequence_affichage = 15
+            self.nb_iterations_max = 50
+            self.frequence_affichage = 10
         elif n <= 100:
             self.taille_population = 25
             self.nb_elite = 3
@@ -491,190 +466,127 @@ class TSP_GA_Interactive:
             self.nb_iterations_max = 50
             self.frequence_affichage = 5
         elif n <= 1000:
-            # CRITIQUE : 1000 lieux
-            self.taille_population = 8       # RÉDUIT de 12 à 8
-            self.nb_elite = 1                 # RÉDUIT de 2 à 1
-            self.taux_mutation = 0.2          # AUGMENTÉ de 0.12 à 0.2
-            self.taux_crossover = 0.5         # RÉDUIT de 0.55 à 0.5
-            self.nb_iterations_max = 15       # RÉDUIT de 40 à 15
-            self.frequence_affichage = 3
+            self.taille_population = 10
+            self.nb_elite = 2
+            self.taux_mutation = 0.15
+            self.taux_crossover = 0.55
+            self.nb_iterations_max = 30
+            self.frequence_affichage = 5
         elif n <= 5000:
             self.taille_population = 6
             self.nb_elite = 1
             self.taux_mutation = 0.25
             self.taux_crossover = 0.45
-            self.nb_iterations_max = 12       # RÉDUIT de 30 à 12
-            self.frequence_affichage = 3
+            self.nb_iterations_max = 20
+            self.frequence_affichage = 5
         elif n <= 10000:
             self.taille_population = 5
             self.nb_elite = 1
             self.taux_mutation = 0.3
             self.taux_crossover = 0.4
-            self.nb_iterations_max = 10       # RÉDUIT de 25 à 10
-            self.frequence_affichage = 2
+            self.nb_iterations_max = 15
+            self.frequence_affichage = 3
         elif n <= 50000:
             self.taille_population = 4
             self.nb_elite = 1
             self.taux_mutation = 0.35
             self.taux_crossover = 0.35
-            self.nb_iterations_max = 8
+            self.nb_iterations_max = 10
             self.frequence_affichage = 2
         elif n <= 100000:
             self.taille_population = 3
             self.nb_elite = 1
             self.taux_mutation = 0.4
             self.taux_crossover = 0.3
-            self.nb_iterations_max = 6        # RÉDUIT de 15 à 6
-            self.frequence_affichage = 1
-        elif n <= 500000:
-            self.taille_population = 3
-            self.nb_elite = 1
-            self.taux_mutation = 0.45
-            self.taux_crossover = 0.25
-            self.nb_iterations_max = 5
-            self.frequence_affichage = 1
-        elif n <= 1000000:
+            self.nb_iterations_max = 8
+            self.frequence_affichage = 2
+        else:  # > 100 000
             self.taille_population = 2
             self.nb_elite = 1
             self.taux_mutation = 0.5
             self.taux_crossover = 0.2
-            self.nb_iterations_max = 4
-            self.frequence_affichage = 1
-        else:
-            self.taille_population = 2
-            self.nb_elite = 1
-            self.taux_mutation = 0.6
-            self.taux_crossover = 0.15
-            self.nb_iterations_max = 3
+            self.nb_iterations_max = 5
             self.frequence_affichage = 1
 
-
-    def optimisation_2opt_adaptative(self, route):
-        """Version ULTRA-RAPIDE du 2-opt (steps plus grands, moins d'itérations)"""
+    def optimisation_2opt_ultra_light(self, route, pour_enfant=False):
+        """
+        Version ULTRA-LÉGÈRE du 2-opt.
+        - Sur enfants : jusqu'à 1000 lieux
+        - Sur heuristique : jusqu'à 5000 lieux
+        """
         n = len(route.ordre) - 2
         
         if n < 4:
             return
         
-        # Paramètres BEAUCOUP plus agressifs
+        # Limite selon contexte
+        if pour_enfant and n > 1000:
+            return
+        if not pour_enfant and n > 5000:
+            return
+        
+        # Paramètres adaptatifs
         if n <= 100:
-            max_iterations = 2          # RÉDUIT de 5 à 2
-            step_i = 1
-            step_j = 1
-            max_distance = n
+            max_iterations = 1
+            max_checks = min(50, n * 2)
+        elif n <= 200:
+            max_iterations = 1
+            max_checks = min(30, n)
         elif n <= 500:
-            max_iterations = 1          # RÉDUIT de 3 à 1
-            step_i = max(2, n // 80)    # AUGMENTÉ (saute plus)
-            step_j = max(2, n // 60)
-            max_distance = min(30, n // 4)
+            max_iterations = 1
+            max_checks = min(20, n // 2)
         elif n <= 1000:
             max_iterations = 1
-            step_i = max(5, n // 40)    # AUGMENTÉ (n//50 → n//40)
-            step_j = max(5, n // 30)    # AUGMENTÉ (n//40 → n//30)
-            max_distance = min(25, n // 8)  # RÉDUIT
-        elif n <= 5000:
+            max_checks = min(15, n // 3)
+        elif n <= 2000:
             max_iterations = 1
-            step_i = max(10, n // 25)   # AUGMENTÉ
-            step_j = max(10, n // 20)
-            max_distance = min(15, n // 20)
-        elif n <= 10000:
+            max_checks = min(10, n // 5)
+        else:  # 2000-5000
             max_iterations = 1
-            step_i = max(20, n // 20)   # AUGMENTÉ
-            step_j = max(20, n // 15)
-            max_distance = min(12, n // 30)
-        elif n <= 50000:
-            max_iterations = 1
-            step_i = max(50, n // 15)
-            step_j = max(50, n // 12)
-            max_distance = min(10, n // 80)
-        elif n <= 100000:
-            max_iterations = 1
-            step_i = max(100, n // 10)
-            step_j = max(100, n // 8)
-            max_distance = min(8, n // 150)
-        else:
-            max_iterations = 1
-            step_i = max(200, n // 8)
-            step_j = max(200, n // 6)
-            max_distance = min(6, n // 300)
-        
-        # Seuil d'amélioration
-        if n <= 1000:
-            seuil = 0.5                 # AUGMENTÉ de 0.1 à 0.5
-        elif n <= 10000:
-            seuil = 1.0                 # AUGMENTÉ de 0.5 à 1.0
-        else:
-            seuil = 2.0
+            max_checks = min(8, n // 10)
         
         ordre = route.ordre
+        checks_done = 0
         
         for iteration in range(max_iterations):
-            amelioration_trouvee = False
+            amelioration = False
             
-            i = 0
-            while i < len(ordre) - 3:
-                j_debut = i + 2
-                j_fin = min(i + max_distance, len(ordre) - 1)
-                
-                j = j_debut
-                while j < j_fin:
-                    if j + 1 >= len(ordre):
+            for i in range(0, len(ordre) - 3, max(1, n // 20)):
+                if checks_done >= max_checks:
+                    break
+                    
+                for j in range(i + 2, min(i + 10, len(ordre) - 1)):
+                    checks_done += 1
+                    if checks_done >= max_checks:
                         break
                     
                     try:
                         dist_avant = (self.graph.matrice_od[ordre[i]][ordre[i+1]] + 
                                     self.graph.matrice_od[ordre[j]][ordre[j+1]])
-                        
                         dist_apres = (self.graph.matrice_od[ordre[i]][ordre[j]] + 
                                     self.graph.matrice_od[ordre[i+1]][ordre[j+1]])
                         
-                        if dist_apres < dist_avant - seuil:
+                        if dist_apres < dist_avant - 1.0:
                             route.ordre[i+1:j+1] = reversed(route.ordre[i+1:j+1])
                             ordre = route.ordre
-                            amelioration_trouvee = True
+                            amelioration = True
                             route._distance_cache = None
                     except:
                         pass
-                    
-                    j += step_j
                 
-                i += step_i
+                if checks_done >= max_checks:
+                    break
             
-            if not amelioration_trouvee:
+            if not amelioration:
                 break
         
         if route._distance_cache is None:
             route._distance_cache = route.calcul_distance_route()
 
-
-    def doit_appliquer_2opt(self):
-        """Réduit drastiquement l'application du 2-opt pendant l'évolution"""
-        n = self.nb_lieux
-        
-        if n <= 100:
-            return True, 0.5           # RÉDUIT de 1.0 à 0.5
-        elif n <= 300:
-            return True, 0.3           # RÉDUIT de 0.7 à 0.3
-        elif n <= 1000:
-            return True, 0.05          # RÉDUIT de 0.4 à 0.05 (CRITIQUE!)
-        elif n <= 5000:
-            return True, 0.0          # RÉDUIT de 0.2 à 0.02
-        elif n <= 10000:
-            return True, 0.01          # RÉDUIT de 0.1 à 0.01
-        elif n <= 50000:
-            return True, 0.005         # RÉDUIT de 0.05 à 0.005
-        elif n <= 100000:
-            return True, 0.002         # RÉDUIT de 0.02 à 0.002
-        elif n <= 500000:
-            return False, 0.0          # DÉSACTIVÉ (était 0.01)
-        else:
-            return False, 0.0
-    
-    
     def initialiser_avec_heuristique(self):
         """
-        Initialise avec l'heuristique du plus proche voisin.
-        2-opt adaptatif jusqu'à 1 MILLION de lieux.
+        Initialisation SIMPLIFIÉE.
+        2-opt UNIQUEMENT sur route heuristique et UNIQUEMENT si < 500 lieux.
         """
         from __main__ import Route
         import time
@@ -682,7 +594,7 @@ class TSP_GA_Interactive:
         print(f"\n=== Initialisation pour {self.nb_lieux} lieux ===")
         temps_debut = time.time()
         
-        # Heuristique = plus proche voisin
+        # ===== HEURISTIQUE DU PLUS PROCHE VOISIN =====
         route_heuristique = Route(self.graph)
         ordre = [0]
         lieux_non_visites = set(range(1, self.nb_lieux))
@@ -700,47 +612,34 @@ class TSP_GA_Interactive:
         route_heuristique.ordre = ordre
         route_heuristique._distance_cache = route_heuristique.calcul_distance_route()
         
-        distance_avant_2opt = route_heuristique._distance_cache
+        distance_avant = route_heuristique._distance_cache
         temps_heuristique = time.time() - temps_debut
-        print(f"Heuristique (plus proche voisin): {distance_avant_2opt:.2f} en {temps_heuristique:.2f}s")
+        print(f"Heuristique: {distance_avant:.2f} en {temps_heuristique:.2f}s")
         
-        # 2-OPT ADAPTATIF sur la route heuristique (si taille raisonnable)
-        if self.nb_lieux <= 100000:  # Limite : 100k lieux
+        # ===== 2-OPT SUR HEURISTIQUE (JUSQU'À 5000 LIEUX) =====
+        if self.nb_lieux <= 5000:
             temps_2opt_debut = time.time()
-            self.optimisation_2opt_adaptative(route_heuristique)
+            self.optimisation_2opt_ultra_light(route_heuristique, pour_enfant=False)
             temps_2opt = time.time() - temps_2opt_debut
             
-            distance_apres_2opt = route_heuristique._distance_cache
-            gain = distance_avant_2opt - distance_apres_2opt
-            pourcent = (gain / distance_avant_2opt * 100) if distance_avant_2opt > 0 else 0
-            print(f"Après 2-opt: {distance_apres_2opt:.2f} en {temps_2opt:.2f}s")
-            print(f"Amélioration: {gain:.2f} ({pourcent:.1f}%)")
+            distance_apres = route_heuristique._distance_cache
+            gain = distance_avant - distance_apres
+            print(f"Après 2-opt: {distance_apres:.2f} en {temps_2opt:.2f}s (gain: {gain:.2f})")
         else:
-            print(f"2-opt désactivé pour {self.nb_lieux} lieux (trop grand)")
-            distance_apres_2opt = distance_avant_2opt
+            print(f"2-opt DÉSACTIVÉ sur heuristique (graphe > 5000 lieux)")
+            distance_apres = distance_avant
         
-        # AFFICHAGE (seulement si interface active)
+        # ===== AFFICHAGE =====
         try:
             self.affichage.afficher_meilleure_route(route_heuristique)
-            self.affichage.ajouter_texte(f"Route heuristique: {distance_avant_2opt:.2f}\n")
-            if self.nb_lieux <= 100000:
-                self.affichage.ajouter_texte(f"Après 2-opt: {distance_apres_2opt:.2f}\n")
+            self.affichage.ajouter_texte(f"Route heuristique: {distance_avant:.2f}\n")
+            if self.nb_lieux <= 5000:
+                self.affichage.ajouter_texte(f"Après 2-opt: {distance_apres:.2f}\n")
         except:
-            pass  # Pas d'affichage pour très grands graphes
+            pass
         
-        # Population initiale
+        # ===== POPULATION INITIALE (SANS 2-OPT) =====
         self.population = [route_heuristique]
-        
-        # Décision d'appliquer 2-opt sur population initiale
-        appliquer_2opt_init = self.nb_lieux <= 10000
-        if self.nb_lieux <= 200:
-            proba_2opt_init = 0.3
-        elif self.nb_lieux <= 1000:
-            proba_2opt_init = 0.1
-        elif self.nb_lieux <= 10000:
-            proba_2opt_init = 0.05
-        else:
-            proba_2opt_init = 0.0
         
         for i in range(self.taille_population - 1):
             route = Route(self.graph)
@@ -748,11 +647,6 @@ class TSP_GA_Interactive:
             random.shuffle(lieux)
             route.ordre = [0] + lieux + [0]
             route._distance_cache = route.calcul_distance_route()
-            
-            # 2-opt sur population initiale (très sélectif)
-            if appliquer_2opt_init and random.random() < proba_2opt_init:
-                self.optimisation_2opt_adaptative(route)
-            
             self.population.append(route)
         
         # Tri
@@ -765,10 +659,9 @@ class TSP_GA_Interactive:
         print("=" * 50)
 
     def _actualiser_affichage_safe(self):
-        """Met à jour l'affichage de manière thread-safe."""
+        """Mise à jour thread-safe de l'affichage."""
         try:
             def update():
-                # Top 10 routes uniques
                 routes_uniques = []
                 distances_vues = set()
                 for route in self.population[:20]:
@@ -778,7 +671,6 @@ class TSP_GA_Interactive:
                     if len(routes_uniques) >= 10:
                         break
                 
-                # Affichage
                 if len(routes_uniques) > 1:
                     self.affichage.afficher_routes_secondaires(routes_uniques[1:])
                 self.affichage.afficher_meilleure_route(self.meilleure_route)
@@ -789,12 +681,12 @@ class TSP_GA_Interactive:
     
     def selection_tournoi(self, taille_tournoi=3):
         """Sélection par tournoi."""
-        taille_tournoi = min(taille_tournoi, len(self.population) // 2)
+        taille_tournoi = min(taille_tournoi, max(2, len(self.population) // 2))
         candidats = random.sample(self.population, taille_tournoi)
         return min(candidats, key=lambda r: r._distance_cache)
     
     def crossover_ox(self, parent1, parent2):
-        """Crossover OX."""
+        """Crossover OX (Order Crossover)."""
         from __main__ import Route
         
         ordre1 = parent1.ordre[1:-1]
@@ -828,7 +720,7 @@ class TSP_GA_Interactive:
         return enfant
     
     def mutation_swap(self, route):
-        """Mutation swap."""
+        """Mutation par échange de 2 lieux."""
         if random.random() < self.taux_mutation:
             ordre = route.ordre[1:-1]
             if len(ordre) > 1:
@@ -837,66 +729,22 @@ class TSP_GA_Interactive:
                 route.ordre = [0] + ordre + [0]
                 route._distance_cache = None
     
-    def optimisation_2opt_locale(self, route, max_essais=None):
-        """
-        Applique 2-opt de manière systématique jusqu'à ne plus trouver d'amélioration.
-        Version rapide avec limite d'essais pour les grands graphes.
-        """
-        if max_essais is None:
-            max_essais = min(100, self.nb_lieux * 2)
-        
-        amelioration_globale = True
-        essais = 0
-        
-        while amelioration_globale and essais < max_essais:
-            amelioration_globale = False
-            essais += 1
-            
-            ordre = route.ordre  # Ordre complet avec [0, ..., 0]
-            n = len(ordre)
-            
-            # Parcours de TOUS les segments (i, i+1) et (j, j+1)
-            for i in range(n - 3):  # On s'arrête avant les 3 derniers
-                for j in range(i + 2, n - 1):  # j commence 2 positions après i
-                    
-                    # Distances AVANT inversion
-                    # Segment 1: ordre[i] -> ordre[i+1]
-                    # Segment 2: ordre[j] -> ordre[j+1]
-                    dist_avant = (self.graph.matrice_od[ordre[i]][ordre[i+1]] + 
-                                self.graph.matrice_od[ordre[j]][ordre[j+1]])
-                    
-                    # Distances APRÈS inversion (on inverse entre i+1 et j)
-                    # Nouveau segment 1: ordre[i] -> ordre[j]
-                    # Nouveau segment 2: ordre[i+1] -> ordre[j+1]
-                    dist_apres = (self.graph.matrice_od[ordre[i]][ordre[j]] + 
-                                self.graph.matrice_od[ordre[i+1]][ordre[j+1]])
-                    
-                    # Si on gagne de la distance, on inverse
-                    if dist_apres < dist_avant - 0.01:
-                        # Inversion du segment [i+1 : j+1] (inclusif)
-                        route.ordre[i+1:j+1] = reversed(route.ordre[i+1:j+1])
-                        ordre = route.ordre  # Met à jour la référence
-                        amelioration_globale = True
-                        route._distance_cache = None
-        
-        # Recalcul de la distance finale
-        if route._distance_cache is None:
-            route._distance_cache = route.calcul_distance_route()
-    
     def nouvelle_generation(self):
-        """Nouvelle génération avec élitisme."""
+        """Génère une nouvelle population (SANS 2-opt sur enfants)."""
         from __main__ import Route
         
         nouvelle_population = []
         
-        # Élitisme : garde les meilleurs sans modification
+        # Élitisme
         for i in range(self.nb_elite):
             nouvelle_population.append(self.population[i])
         
-        # Génération
-        compteur = 0
-        while len(nouvelle_population) < self.taille_population and compteur < self.taille_population * 5:
-            compteur += 1
+        # Génération d'enfants
+        tentatives = 0
+        max_tentatives = self.taille_population * 3
+        
+        while len(nouvelle_population) < self.taille_population and tentatives < max_tentatives:
+            tentatives += 1
             
             try:
                 parent1 = self.selection_tournoi()
@@ -909,33 +757,35 @@ class TSP_GA_Interactive:
                     enfant.ordre = parent1.ordre.copy()
                     enfant._distance_cache = parent1._distance_cache
                 
-                # Mutations
-                if random.random() < self.taux_mutation:
-                    self.mutation_swap(enfant)
+                # Mutation
+                self.mutation_swap(enfant)
                 
-                # 2-OPT LOCAL sur les enfants (PLUS AGRESSIF)
-                if self.nb_lieux <= 100:
-                    # Pour les petits graphes : 2-opt complet
-                    self.optimisation_2opt_locale(enfant, max_essais=50)
-                elif self.nb_lieux <= 200:
-                    # Pour les graphes moyens : 2-opt partiel
-                    self.optimisation_2opt_locale(enfant, max_essais=20)
-                else:
-                    # Pour les grands graphes : 2-opt léger
-                    if random.random() < 0.3:  # Seulement 30% du temps
-                        self.optimisation_2opt_locale(enfant, max_essais=10)
+                # ===== 2-OPT SUR ENFANTS (JUSQU'À 1000 LIEUX) =====
+                if self.nb_lieux <= 1000:
+                    # Probabilité décroissante selon taille
+                    if self.nb_lieux <= 100:
+                        proba_2opt = 0.5  # 50% pour petits graphes
+                    elif self.nb_lieux <= 200:
+                        proba_2opt = 0.3
+                    elif self.nb_lieux <= 500:
+                        proba_2opt = 0.2
+                    else:  # 500-1000
+                        proba_2opt = 0.1
+                    
+                    if random.random() < proba_2opt:
+                        self.optimisation_2opt_ultra_light(enfant, pour_enfant=True)
                 
                 if enfant._distance_cache is None:
                     enfant._distance_cache = enfant.calcul_distance_route()
                 
-                # Pas de doublons
+                # Éviter doublons
                 est_doublon = any(r.ordre == enfant.ordre for r in nouvelle_population)
                 if not est_doublon:
                     nouvelle_population.append(enfant)
             except:
                 pass
         
-        # Compléter si besoin
+        # Compléter si nécessaire
         while len(nouvelle_population) < self.taille_population:
             route = Route(self.graph)
             lieux = list(range(1, self.nb_lieux))
@@ -947,7 +797,7 @@ class TSP_GA_Interactive:
         self.population = nouvelle_population
         self.population.sort(key=lambda r: r._distance_cache)
         
-        # Mise à jour meilleure
+        # Mise à jour meilleure route
         distance_actuelle = self.population[0]._distance_cache
         if distance_actuelle < self.meilleure_distance:
             self.meilleure_route = self.population[0]
@@ -957,7 +807,7 @@ class TSP_GA_Interactive:
         return False
     
     def executer_thread(self):
-        """Exécute l'algo dans un thread."""
+        """Exécution de l'algorithme dans un thread."""
         import time
         
         temps_debut = time.time()
@@ -970,27 +820,24 @@ class TSP_GA_Interactive:
             self.iteration_courante = iteration
             amelioration = self.nouvelle_generation()
             
-            # Affichage périodique OU si amélioration
+            # Affichage
             if iteration % self.frequence_affichage == 0 or amelioration or iteration == self.nb_iterations_max:
                 self._actualiser_affichage_safe()
                 
-                temps_ecoule = time.time() - temps_debut
-                vitesse = iteration / temps_ecoule if temps_ecoule > 0 else 0
-
-                info = (f"Iter {iteration:3d}/{self.nb_iterations_max} | "
-                       f"Best: {self.meilleure_distance:7.2f} | "
-                       f"Found: iter {self.iteration_meilleure:3d}")
-
                 if amelioration:
+                    info = (f"Iter {iteration:3d}/{self.nb_iterations_max} | "
+                           f"Best: {self.meilleure_distance:7.2f} | "
+                           f"Found: iter {self.iteration_meilleure:3d}")
                     self.affichage.root.after(0, lambda i=info: self.affichage.ajouter_texte(i + "\n"))
         
-        # Final
+        # Affichage final
         temps_total = time.time() - temps_debut
         
         def affichage_final():
+            self.affichage.ajouter_texte(f"\n=== RÉSULTAT FINAL ===\n")
             self.affichage.ajouter_texte(f"Meilleure distance: {self.meilleure_distance:.2f}\n")
             self.affichage.ajouter_texte(f"Trouvée: itération {self.iteration_meilleure}\n")
-            self.affichage.ajouter_texte(f"Temps: {temps_total:.2f}s\n")
+            self.affichage.ajouter_texte(f"Temps total: {temps_total:.2f}s\n")
         
         self.affichage.root.after(0, affichage_final)
         self.en_cours = False
@@ -998,6 +845,7 @@ class TSP_GA_Interactive:
     def lancer(self):
         """Lance l'algorithme dans un thread."""
         self.en_cours = True
+        import threading
         thread = threading.Thread(target=self.executer_thread, daemon=False)
         thread.start()
 
@@ -1045,5 +893,5 @@ if __name__ == "__main__":
         nom_fichier = "graph_20.csv" 
         main_interactive(nom_fichier=nom_fichier)
     else:
-        NB_LIEUX = 500
+        NB_LIEUX = 10000
         main_interactive(nom_fichier=None)
