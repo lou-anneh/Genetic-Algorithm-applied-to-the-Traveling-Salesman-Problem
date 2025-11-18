@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import Canvas, Text, Scrollbar
 import random
 import time
+import threading
 
 # ============================================================================
 # CONSTANTES GLOBALES
@@ -77,11 +78,6 @@ class Lieu:
 
 # ============================================================================
 
-import numpy as np
-import random
-import csv
-# Assure-toi que Lieu est défini au-dessus de ce code
-# Assure-toi que les constantes (LARGEUR, HAUTEUR, NB_LIEUX) sont définies
 # ============================================================================
 # CLASSE GRAPH
 # ============================================================================
@@ -238,7 +234,6 @@ class Route:
         return distance_totale
     
 
-
 # ============================================================================
 # CLASSE AFFICHAGE
 # ============================================================================
@@ -362,15 +357,9 @@ class Affichage:
         self.afficher_population = not self.afficher_population
         self.rafraichir_affichage()
         
-        if self.afficher_population:
-            self.ajouter_texte(f"Affichage de {len(self.routes_population)} routes secondaires activé.\n")
-        else:
-            self.ajouter_texte("Affichage des routes secondaires désactivé.\n")
-    
     def rafraichir_affichage(self):
-        # self.canvas.delete("all")  # <- on ne supprime plus tout
         # Supprimer uniquement les routes existantes
-        self.canvas.delete("route")  # On utilisera un tag 'route' pour toutes les lignes
+        self.canvas.delete("route")  # On utilise un tag 'route' pour toutes les lignes
 
         # Affichage des routes secondaires si activé
         if self.afficher_population:
@@ -415,9 +404,7 @@ TSP_GA avec affichage dans UNE SEULE fenêtre
 L'affichage se met à jour pendant l'exécution
 """
 
-import threading
-
-class TSP_GA_Interactive:
+class TSP_GA:
 
     def __init__(self, graph, affichage):
         self.graph = graph
@@ -438,74 +425,74 @@ class TSP_GA_Interactive:
         n = self.nb_lieux
         
         if n <= 50:
-            self.taille_population = 30
-            self.nb_elite = 3
-            self.taux_mutation = 0.05
+            self.taille_population = 40
+            self.nb_elite = 4
+            self.taux_mutation = 0.08
             self.taux_crossover = 0.75
-            self.nb_iterations_max = 50
+            self.nb_iterations_max = 75
             self.frequence_affichage = 10
         elif n <= 100:
-            self.taille_population = 25
-            self.nb_elite = 3
-            self.taux_mutation = 0.05
+            self.taille_population = 35
+            self.nb_elite = 4
+            self.taux_mutation = 0.08
+            self.taux_crossover = 0.7
+            self.nb_iterations_max = 150
+            self.frequence_affichage = 10
+        elif n <= 200:
+            self.taille_population = 30
+            self.nb_elite = 4
+            self.taux_mutation = 0.08
             self.taux_crossover = 0.7
             self.nb_iterations_max = 100
             self.frequence_affichage = 10
-        elif n <= 200:
+        elif n <= 500:
             self.taille_population = 20
             self.nb_elite = 2
-            self.taux_mutation = 0.08
-            self.taux_crossover = 0.65
-            self.nb_iterations_max = 75
-            self.frequence_affichage = 10
-        elif n <= 500:
-            self.taille_population = 15
-            self.nb_elite = 2
-            self.taux_mutation = 0.1
+            self.taux_mutation = 0.12
             self.taux_crossover = 0.6
-            self.nb_iterations_max = 50
+            self.nb_iterations_max = 100
             self.frequence_affichage = 5
         elif n <= 1000:
-            self.taille_population = 10
+            self.taille_population = 12
             self.nb_elite = 2
             self.taux_mutation = 0.15
             self.taux_crossover = 0.55
             self.nb_iterations_max = 30
             self.frequence_affichage = 5
         elif n <= 5000:
-            self.taille_population = 6
-            self.nb_elite = 1
-            self.taux_mutation = 0.25
-            self.taux_crossover = 0.45
-            self.nb_iterations_max = 20
+            self.taille_population = 15
+            self.nb_elite = 2
+            self.taux_mutation = 0.15
+            self.taux_crossover = 0.6
+            self.nb_iterations_max = 50
             self.frequence_affichage = 5
         elif n <= 10000:
-            self.taille_population = 5
-            self.nb_elite = 1
-            self.taux_mutation = 0.3
-            self.taux_crossover = 0.4
-            self.nb_iterations_max = 15
+            self.taille_population = 10
+            self.nb_elite = 2
+            self.taux_mutation = 0.2
+            self.taux_crossover = 0.5
+            self.nb_iterations_max = 30
             self.frequence_affichage = 3
         elif n <= 50000:
-            self.taille_population = 4
+            self.taille_population = 8
             self.nb_elite = 1
-            self.taux_mutation = 0.35
-            self.taux_crossover = 0.35
+            self.taux_mutation = 0.25
+            self.taux_crossover = 0.4
             self.nb_iterations_max = 10
             self.frequence_affichage = 2
         elif n <= 100000:
+            self.taille_population = 5
+            self.nb_elite = 1
+            self.taux_mutation = 0.3
+            self.taux_crossover = 0.3
+            self.nb_iterations_max = 5
+            self.frequence_affichage = 2
+        else:  # > 100 000
             self.taille_population = 3
             self.nb_elite = 1
             self.taux_mutation = 0.4
-            self.taux_crossover = 0.3
-            self.nb_iterations_max = 8
-            self.frequence_affichage = 2
-        else:  # > 100 000
-            self.taille_population = 2
-            self.nb_elite = 1
-            self.taux_mutation = 0.5
-            self.taux_crossover = 0.2
-            self.nb_iterations_max = 5
+            self.taux_crossover = 0.25
+            self.nb_iterations_max = 2
             self.frequence_affichage = 1
 
     def optimisation_2opt_ultra_light(self, route, pour_enfant=False):
@@ -527,19 +514,19 @@ class TSP_GA_Interactive:
         
         # Paramètres adaptatifs
         if n <= 100:
-            max_iterations = 1
-            max_checks = min(50, n * 2)
+            max_iterations = 1500
+            max_checks = min(5000, n * n)
         elif n <= 200:
-            max_iterations = 1
+            max_iterations = 750
             max_checks = min(30, n)
         elif n <= 500:
-            max_iterations = 1
+            max_iterations = 3
             max_checks = min(20, n // 2)
         elif n <= 1000:
-            max_iterations = 1
+            max_iterations = 3
             max_checks = min(15, n // 3)
         elif n <= 2000:
-            max_iterations = 1
+            max_iterations = 3
             max_checks = min(10, n // 5)
         else:  # 2000-5000
             max_iterations = 1
@@ -571,8 +558,8 @@ class TSP_GA_Interactive:
                             ordre = route.ordre
                             amelioration = True
                             route._distance_cache = None
-                    except:
-                        pass
+                    except Exception as e:
+                            print("ERREUR:", e)
                 
                 if checks_done >= max_checks:
                     break
@@ -586,7 +573,7 @@ class TSP_GA_Interactive:
     def initialiser_avec_heuristique(self):
         """
         Initialisation SIMPLIFIÉE.
-        2-opt UNIQUEMENT sur route heuristique et UNIQUEMENT si < 500 lieux.
+        2-opt UNIQUEMENT sur route heuristique et UNIQUEMENT si < 5000 lieux.
         """
         from __main__ import Route
         import time
@@ -766,11 +753,11 @@ class TSP_GA_Interactive:
                     if self.nb_lieux <= 100:
                         proba_2opt = 0.5  # 50% pour petits graphes
                     elif self.nb_lieux <= 200:
-                        proba_2opt = 0.3
+                        proba_2opt = 0.5
                     elif self.nb_lieux <= 500:
                         proba_2opt = 0.2
                     else:  # 500-1000
-                        proba_2opt = 0.1
+                        proba_2opt = 0.05
                     
                     if random.random() < proba_2opt:
                         self.optimisation_2opt_ultra_light(enfant, pour_enfant=True)
@@ -837,7 +824,6 @@ class TSP_GA_Interactive:
             self.affichage.ajouter_texte(f"\n=== RÉSULTAT FINAL ===\n")
             self.affichage.ajouter_texte(f"Meilleure distance: {self.meilleure_distance:.2f}\n")
             self.affichage.ajouter_texte(f"Trouvée: itération {self.iteration_meilleure}\n")
-            self.affichage.ajouter_texte(f"Temps total: {temps_total:.2f}s\n")
         
         self.affichage.root.after(0, affichage_final)
         self.en_cours = False
@@ -845,7 +831,6 @@ class TSP_GA_Interactive:
     def lancer(self):
         """Lance l'algorithme dans un thread."""
         self.en_cours = True
-        import threading
         thread = threading.Thread(target=self.executer_thread, daemon=False)
         thread.start()
 
@@ -873,11 +858,11 @@ def main_interactive(nom_fichier=None):
     affichage = Affichage(graph, titre=f"TSP - {len(graph.liste_lieux)} lieux")
     
     # Algorithme
-    tsp_ga = TSP_GA_Interactive(graph, affichage)
+    tsp_ga = TSP_GA(graph, affichage)
     tsp_ga.initialiser_avec_heuristique()
     
     # Lancement dans un thread
-    affichage.root.after(1000, tsp_ga.lancer)
+    affichage.root.after(400, tsp_ga.lancer)
     
     # Interface (bloquant)
     affichage.lancer()
@@ -887,11 +872,11 @@ if __name__ == "__main__":
     
     # === OPTION 1 : FICHIER CSV ===================================
     # Décommente pour utiliser un fichier fourni
-    utiliser_fichier = False  # <<<<<<<< mettre False pour tester avec génération aléatoire
+    utiliser_fichier = True  # <<<<<<<< mettre False pour tester avec génération aléatoire
 
     if utiliser_fichier:
         nom_fichier = "graph_20.csv" 
         main_interactive(nom_fichier=nom_fichier)
     else:
-        NB_LIEUX = 10000
+        NB_LIEUX = 2000
         main_interactive(nom_fichier=None)
