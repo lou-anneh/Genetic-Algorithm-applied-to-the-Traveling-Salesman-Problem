@@ -8,7 +8,6 @@ import random
 import csv
 import tkinter as tk
 from tkinter import Canvas, Text, Scrollbar
-import random
 import time
 import threading
 
@@ -32,6 +31,7 @@ class Lieu:
     Classe représentant un lieu avec ses coordonnées (x, y) et son nom.
     Permet de calculer la distance euclidienne entre deux lieux.
     """
+    __slots__ = ('x', 'y', 'nom')  # Optimisation mémoire
     def __init__(self, x, y, nom):
     
         """
@@ -91,6 +91,7 @@ class Graph:
     def __init__(self, path=None, nb_lieux_defaut=NB_LIEUX):
         self.liste_lieux = []
         self.matrice_od = None
+        self.mode_direct = False  # Pour calcul direct sans matrice
         
         if path is None:
             print("Mode: Génération aléatoire de lieux.")
@@ -100,7 +101,11 @@ class Graph:
             self.charger_graph(path)
             
         if self.liste_lieux:
-            self.calcul_matrice_cout_od()
+            # OPTIMISATION: Ne créer matrice que si < 30 000 lieux
+            if len(self.liste_lieux) < 30000:
+                self.calcul_matrice_cout_od()
+            else:
+                self.mode_direct = True
         else:
             print("Erreur: Aucun lieu n'a été chargé ou généré.")
     
@@ -152,7 +157,7 @@ class Graph:
             print(f"{len(self.liste_lieux)} lieux chargés depuis {nom_fichier}")
             
             if len(self.liste_lieux) != NB_LIEUX:
-                print(f"⚠️ Incohérence: {len(self.liste_lieux)} lieux vs {NB_LIEUX} attendus")
+                print(f"Incohérence: {len(self.liste_lieux)} lieux vs {NB_LIEUX} attendus")
                 NB_LIEUX = len(self.liste_lieux)
                 
         except FileNotFoundError:
@@ -167,7 +172,8 @@ class Graph:
             print("Impossible de calculer la matrice: liste_lieux est vide.")
             return None
             
-        self.matrice_od = np.zeros((n, n))
+        # OPTIMISATION: float32 au lieu de float64 = 50% mémoire en moins
+        self.matrice_od = np.zeros((n, n), dtype=np.float32)
         
         for i in range(n):
             for j in range(i + 1, n): 
@@ -177,6 +183,14 @@ class Graph:
         
         print("Matrice des distances calculée.")
         return self.matrice_od
+    
+    def get_distance(self, i, j):
+        """Obtient distance entre lieux i et j (avec ou sans matrice)"""
+        if self.mode_direct:
+            # Calcul direct
+            return self.liste_lieux[i].distance(self.liste_lieux[j])
+        else:
+            return self.matrice_od[i][j]
 
     def plus_proche_voisin(self, indice_lieu, lieux_non_visites):
         """Trouve le plus proche voisin d'un lieu donné."""
@@ -187,7 +201,7 @@ class Graph:
         indice_plus_proche = None
         
         for i in lieux_non_visites:
-            dist = self.matrice_od[indice_lieu][i]
+            dist = self.get_distance(indice_lieu, i)
             if dist < distance_min:
                 distance_min = dist
                 indice_plus_proche = i
@@ -204,7 +218,7 @@ class Route:
     Classe représentant une route traversant tous les lieux d'un graphe.
     La route commence et se termine au lieu 0 (point de départ).
     """
-    
+    __slots__ = ('graph', 'ordre', '_distance_cache')  # Économie mémoire
     def __init__(self, graph):
         """
         Initialise une route pour un graphe donné.
@@ -214,25 +228,20 @@ class Route:
         """
         self.graph = graph
         self.ordre = []  # Ordre de visite des lieux [0, 3, 8, 1, 2, 4, 6, 5, 9, 7, 0]
-    
+        self._distance_cache = None
+
     def calcul_distance_route(self):
-        """
-        Calcule la distance totale de la route en utilisant l'ordre de visite.
-        Parcourt tous les segments de la route et somme les distances.
+        if self._distance_cache is not None:
+            return self._distance_cache
         
-        Returns:
-            float: Distance totale de la route
-        """
         distance_totale = 0.0
-        
-        # Parcours de la route et somme des distances entre lieux consécutifs
         for i in range(len(self.ordre) - 1):
             lieu_depart = self.ordre[i]
             lieu_arrivee = self.ordre[i + 1]
             distance_totale += self.graph.matrice_od[lieu_depart][lieu_arrivee]
         
+        self._distance_cache = distance_totale
         return distance_totale
-    
 
 # ============================================================================
 # CLASSE AFFICHAGE
@@ -257,6 +266,11 @@ class Affichage:
         self.routes_population = []  # Pour stocker les N meilleures routes
         self.afficher_population = False  # Flag pour afficher/masquer les routes
         
+        # OPTIMISATION: Échantillonnage pour grands graphes
+        self.nb_lieux_total = len(graph.liste_lieux)
+        self.echantillonner = self.nb_lieux_total > 1000
+        self.taux_echantillon = max(0.1, min(1.0, 1000 / self.nb_lieux_total))
+
         # Création de la fenêtre principale
         self.root = tk.Tk()
         self.root.title(titre)
@@ -427,45 +441,51 @@ class TSP_GA:
         if n <= 50:
             self.taille_population = 40
             self.nb_elite = 4
-            self.taux_mutation = 0.08
+            self.taux_mutation = 0.12
             self.taux_crossover = 0.75
             self.nb_iterations_max = 75
             self.frequence_affichage = 10
+            self.activer_2opt = True
         elif n <= 100:
             self.taille_population = 35
             self.nb_elite = 4
-            self.taux_mutation = 0.08
+            self.taux_mutation = 0.15
             self.taux_crossover = 0.7
             self.nb_iterations_max = 150
             self.frequence_affichage = 10
+            self.activer_2opt = True
         elif n <= 200:
             self.taille_population = 30
             self.nb_elite = 4
-            self.taux_mutation = 0.08
+            self.taux_mutation = 0.15
             self.taux_crossover = 0.7
             self.nb_iterations_max = 100
             self.frequence_affichage = 10
+            self.activer_2opt = True
         elif n <= 500:
             self.taille_population = 20
             self.nb_elite = 2
-            self.taux_mutation = 0.12
+            self.taux_mutation = 0.18
             self.taux_crossover = 0.6
             self.nb_iterations_max = 100
             self.frequence_affichage = 5
+            self.activer_2opt = True
         elif n <= 1000:
             self.taille_population = 12
             self.nb_elite = 2
-            self.taux_mutation = 0.15
+            self.taux_mutation = 0.18
             self.taux_crossover = 0.55
             self.nb_iterations_max = 30
             self.frequence_affichage = 5
+            self.activer_2opt = True
         elif n <= 5000:
             self.taille_population = 15
             self.nb_elite = 2
-            self.taux_mutation = 0.15
+            self.taux_mutation = 0.18
             self.taux_crossover = 0.6
             self.nb_iterations_max = 50
             self.frequence_affichage = 5
+            self.activer_2opt = False
         elif n <= 10000:
             self.taille_population = 10
             self.nb_elite = 2
@@ -473,27 +493,23 @@ class TSP_GA:
             self.taux_crossover = 0.5
             self.nb_iterations_max = 30
             self.frequence_affichage = 3
+            self.activer_2opt = False
         elif n <= 50000:
             self.taille_population = 8
             self.nb_elite = 1
             self.taux_mutation = 0.25
             self.taux_crossover = 0.4
-            self.nb_iterations_max = 10
+            self.nb_iterations_max = 20
             self.frequence_affichage = 2
-        elif n <= 100000:
-            self.taille_population = 5
-            self.nb_elite = 1
-            self.taux_mutation = 0.3
-            self.taux_crossover = 0.3
-            self.nb_iterations_max = 5
-            self.frequence_affichage = 2
-        else:  # > 100 000
+            self.activer_2opt = False
+        else:  # > 50 000
             self.taille_population = 3
             self.nb_elite = 1
             self.taux_mutation = 0.4
             self.taux_crossover = 0.25
-            self.nb_iterations_max = 2
+            self.nb_iterations_max = 15
             self.frequence_affichage = 1
+            self.activer_2opt = False
 
     def optimisation_2opt_ultra_light(self, route, pour_enfant=False):
         """
@@ -501,6 +517,8 @@ class TSP_GA:
         - Sur enfants : jusqu'à 1000 lieux
         - Sur heuristique : jusqu'à 5000 lieux
         """
+        if not self.activer_2opt:
+            return
         n = len(route.ordre) - 2
         
         if n < 4:
@@ -515,7 +533,7 @@ class TSP_GA:
         # Paramètres adaptatifs
         if n <= 100:
             max_iterations = 1500
-            max_checks = min(5000, n * n)
+            max_checks = min(3000, n * n)
         elif n <= 200:
             max_iterations = 750
             max_checks = min(30, n)
@@ -542,24 +560,25 @@ class TSP_GA:
                 if checks_done >= max_checks:
                     break
                     
-                for j in range(i + 2, min(i + 10, len(ordre) - 1)):
+                for j in range(i + 2, min(i + 50, len(ordre) - 1)):
                     checks_done += 1
                     if checks_done >= max_checks:
                         break
                     
                     try:
-                        dist_avant = (self.graph.matrice_od[ordre[i]][ordre[i+1]] + 
-                                    self.graph.matrice_od[ordre[j]][ordre[j+1]])
-                        dist_apres = (self.graph.matrice_od[ordre[i]][ordre[j]] + 
-                                    self.graph.matrice_od[ordre[i+1]][ordre[j+1]])
+                        # UTILISER get_distance au lieu de matrice_od direct
+                        dist_avant = (self.graph.get_distance(ordre[i], ordre[i+1]) + 
+                                    self.graph.get_distance(ordre[j], ordre[j+1]))
+                        dist_apres = (self.graph.get_distance(ordre[i], ordre[j]) + 
+                                    self.graph.get_distance(ordre[i+1], ordre[j+1]))
                         
                         if dist_apres < dist_avant - 1.0:
                             route.ordre[i+1:j+1] = reversed(route.ordre[i+1:j+1])
                             ordre = route.ordre
                             amelioration = True
                             route._distance_cache = None
-                    except Exception as e:
-                            print("ERREUR:", e)
+                    except Exception as e:  
+                        print("ERREUR 2-opt:", e)
                 
                 if checks_done >= max_checks:
                     break
@@ -576,7 +595,6 @@ class TSP_GA:
         2-opt UNIQUEMENT sur route heuristique et UNIQUEMENT si < 5000 lieux.
         """
         from __main__ import Route
-        import time
         
         print(f"\n=== Initialisation pour {self.nb_lieux} lieux ===")
         temps_debut = time.time()
@@ -603,8 +621,8 @@ class TSP_GA:
         temps_heuristique = time.time() - temps_debut
         print(f"Heuristique: {distance_avant:.2f} en {temps_heuristique:.2f}s")
         
-        # ===== 2-OPT SUR HEURISTIQUE (JUSQU'À 5000 LIEUX) =====
-        if self.nb_lieux <= 5000:
+        # ===== 2-OPT SUR HEURISTIQUE =====
+        if self.activer_2opt:
             temps_2opt_debut = time.time()
             self.optimisation_2opt_ultra_light(route_heuristique, pour_enfant=False)
             temps_2opt = time.time() - temps_2opt_debut
@@ -613,7 +631,7 @@ class TSP_GA:
             gain = distance_avant - distance_apres
             print(f"Après 2-opt: {distance_apres:.2f} en {temps_2opt:.2f}s (gain: {gain:.2f})")
         else:
-            print(f"2-opt DÉSACTIVÉ sur heuristique (graphe > 5000 lieux)")
+            print(f"2-opt DÉSACTIVÉ")
             distance_apres = distance_avant
         
         # ===== AFFICHAGE =====
@@ -751,11 +769,11 @@ class TSP_GA:
                 if self.nb_lieux <= 1000:
                     # Probabilité décroissante selon taille
                     if self.nb_lieux <= 100:
-                        proba_2opt = 0.5  # 50% pour petits graphes
+                        proba_2opt = 0.9  # 50% pour petits graphes
                     elif self.nb_lieux <= 200:
-                        proba_2opt = 0.5
+                        proba_2opt = 0.7
                     elif self.nb_lieux <= 500:
-                        proba_2opt = 0.2
+                        proba_2opt = 0.4
                     else:  # 500-1000
                         proba_2opt = 0.05
                     
@@ -766,13 +784,13 @@ class TSP_GA:
                     enfant._distance_cache = enfant.calcul_distance_route()
                 
                 # Éviter doublons
-                est_doublon = any(r.ordre == enfant.ordre for r in nouvelle_population)
+                est_doublon = any(abs(r._distance_cache - enfant._distance_cache) < 0.01 
+                                for r in nouvelle_population)
                 if not est_doublon:
                     nouvelle_population.append(enfant)
             except:
                 pass
         
-        # Compléter si nécessaire
         while len(nouvelle_population) < self.taille_population:
             route = Route(self.graph)
             lieux = list(range(1, self.nb_lieux))
@@ -872,11 +890,11 @@ if __name__ == "__main__":
     
     # === OPTION 1 : FICHIER CSV ===================================
     # Décommente pour utiliser un fichier fourni
-    utiliser_fichier = True  # <<<<<<<< mettre False pour tester avec génération aléatoire
+    utiliser_fichier = False  # <<<<<<<< mettre False pour tester avec génération aléatoire
 
     if utiliser_fichier:
         nom_fichier = "graph_20.csv" 
         main_interactive(nom_fichier=nom_fichier)
     else:
-        NB_LIEUX = 500
+        NB_LIEUX = 1000
         main_interactive(nom_fichier=None)
